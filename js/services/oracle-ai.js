@@ -13,6 +13,8 @@
  * เจ้าของโปรเจกต์รับทราบและเลือกใช้แบบนี้เอง (ฝากขึ้น GitHub Pages โดยไม่มีเซิร์ฟเวอร์)
  */
 
+import { currentDateContext } from './question-router.js';
+
 const LOCAL_CHAT_ENDPOINT = '/api/oracle/chat';
 // เซิร์ฟเวอร์กลางของเจ้าของโปรเจกต์ (คุม CORS เองได้ ไม่โดน Cloudflare ของ ThaiLLM สุ่มบล็อก)
 const PROXY_CHAT_ENDPOINT = 'https://catlog-api.dentcos.com/api/thaillm/chat/completions';
@@ -98,12 +100,24 @@ async function detectMode() {
   return cachedMode;
 }
 
+
+/** ประกอบคำสั่งระบบ โดยใส่วันเวลาปัจจุบันไว้ด้านบนสุดเสมอ */
+function buildSystemPrompt(context, purpose) {
+  const NL = String.fromCharCode(10);
+  return [
+    SYSTEM_PROMPT_BASE,
+    '',
+    currentDateContext().blockTh,
+    '',
+    'ประเภทคำขอ: ' + purpose,
+    'บริบทที่ระบบคำนวณไว้แล้ว:',
+    context || 'ไม่มีข้อมูลดวงเพิ่มเติม'
+  ].join(NL);
+}
+
 /** เรียกผ่านเซิร์ฟเวอร์กลาง catlog-api (รูปแบบ OpenAI-compatible) */
 async function callProxy(messages, context, purpose, signal) {
-  const systemPrompt = SYSTEM_PROMPT_BASE
-    + String.fromCharCode(10) + 'ประเภทคำขอ: ' + purpose
-    + String.fromCharCode(10) + 'บริบทที่ระบบคำนวณไว้แล้ว:' + String.fromCharCode(10)
-    + (context || 'ไม่มีข้อมูลดวงเพิ่มเติม');
+  const systemPrompt = buildSystemPrompt(context, purpose);
 
   const response = await fetch(PROXY_CHAT_ENDPOINT, {
     method: 'POST',
@@ -130,9 +144,7 @@ async function callProxy(messages, context, purpose, signal) {
 
 /** เรียก ThaiLLM ตรงจากเบราว์เซอร์แบบเลี่ยง preflight */
 async function callDirect(messages, context, purpose, signal) {
-  const systemPrompt = SYSTEM_PROMPT_BASE
-    + '\nประเภทคำขอ: ' + purpose
-    + '\nบริบทที่ระบบคำนวณไว้แล้ว:\n' + (context || 'ไม่มีข้อมูลดวงเพิ่มเติม');
+  const systemPrompt = buildSystemPrompt(context, purpose);
 
   const url = DIRECT_CONFIG.apiUrl + '?apikey=' + encodeURIComponent(DIRECT_CONFIG.apiKey);
   const response = await fetch(url, {

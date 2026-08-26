@@ -17,6 +17,9 @@ import { LifeDomainsEngine } from '../js/engines/life-domains.js';
 import { detectIntent, detectShape, retrieveFacts, buildInstruction, INTENTS, QUESTION_SHAPES } from '../js/services/question-router.js';
 import { ChineseZodiacEngine } from '../js/engines/chinese-zodiac.js';
 import { scoreCareer, scoreMoney, scoreLove, scoreHealth, scoreLuck, elementBalance } from '../js/engines/scoring.js';
+import { currentDateContext } from '../js/services/question-router.js';
+import { relationBetween } from '../js/views/elements-view.js';
+import { CHINESE_ELEMENTS, THAI_ELEMENTS_GUIDE, WESTERN_ELEMENTS_GUIDE, CLASH_DETAIL } from '../js/data/elements-guide.js';
 
 /** AudioContext จำลองสำหรับรันโค้ดสังเคราะห์เสียงใน Node */
 function createFakeAudioContext() {
@@ -464,5 +467,111 @@ export function runCoverageExtraTests(it) {
     assert.ok(perfect > 0.95, 'ธาตุเท่ากันหมดต้องได้คะแนนสมดุลเกือบเต็ม');
     assert.ok(skewed < 0.3, 'ธาตุเทไปทางเดียวต้องได้คะแนนสมดุลต่ำ');
     assert.strictEqual(elementBalance({ Wood: 0, Fire: 0, Earth: 0, Metal: 0, Water: 0 }), 0);
+  });
+
+  console.log('\n--- SECTION 30: ต้องอิงปีปัจจุบันเสมอ ไม่ให้ AI เดาปีเอง ---');
+
+  it('บริบทที่ส่งให้ AI ต้องมีวันเวลาปัจจุบันอยู่บนสุด', () => {
+    const profile = { birthDate: '1996-08-26', birthTime: '09:30', lat: 13.7563, lon: 100.5018, name: 'ท', nickname: 'ท' };
+    const r = LifeDomainsEngine.analyze(profile);
+    ['love', 'career', 'money', 'health', 'luck', 'general'].forEach(id => {
+      const facts = retrieveFacts(r.meta, r.domains, id);
+      assert.ok(facts.trimStart().startsWith('[วันเวลาปัจจุบัน'),
+        'หมวด ' + id + ' ต้องมีวันเวลาปัจจุบันอยู่บนสุด');
+    });
+  });
+
+  it('วันเวลาที่ส่งให้ AI ต้องตรงกับเวลาจริง ไม่ใช่ค่าตายตัว', () => {
+    const now = new Date();
+    const d = currentDateContext(now);
+    assert.strictEqual(d.year, now.getFullYear());
+    assert.strictEqual(d.beYear, now.getFullYear() + 543);
+    // ส่งเวลาอื่นเข้าไปต้องได้ผลตามนั้น พิสูจน์ว่าไม่ได้ hardcode
+    const future = currentDateContext(new Date('2030-03-15T00:00:00'));
+    assert.strictEqual(future.beYear, 2573);
+    assert.strictEqual(future.quarter, 1);
+    const past = currentDateContext(new Date('2015-11-20T00:00:00'));
+    assert.strictEqual(past.beYear, 2558);
+    assert.strictEqual(past.quarter, 4);
+  });
+
+  it('มีคำสั่งห้าม AI อ้างปีที่ผ่านไปแล้วว่าเป็นอนาคต', () => {
+    const d = currentDateContext();
+    assert.ok(d.blockTh.includes('ห้ามอ้างปีที่ผ่านไปแล้ว'));
+    assert.ok(d.blockTh.includes(String(d.beYear)), 'ต้องระบุปี พ.ศ. ปัจจุบันชัดเจน');
+    const inst = buildInstruction('ควรลงทุนไหม');
+    assert.ok(inst.instructionTh.includes(String(d.beYear)), 'คำสั่งต้องย้ำปีปัจจุบัน');
+  });
+
+  it('เอนจินคำนวณปีชงและเลขจังหวะชีวิตตามปีปัจจุบันจริง', () => {
+    const thisYear = new Date().getFullYear();
+    const r = LifeDomainsEngine.analyze({ birthDate: '1996-08-26', birthTime: '09:30', name: 'ท' });
+    assert.strictEqual(r.meta.chong.targetYear, thisYear, 'ปีชงต้องเช็คกับปีปัจจุบัน');
+    assert.strictEqual(r.meta.chong.buddhistYear, thisYear + 543);
+    const expectedPY = NumerologyEngine.calculatePersonalYear('1996-08-26', thisYear);
+    assert.strictEqual(r.meta.numerology.personalYear, expectedPY, 'เลขจังหวะชีวิตต้องใช้ปีปัจจุบัน');
+  });
+
+  console.log('\n--- SECTION 31: คู่มือธาตุ ธาตุไหนหนุน ธาตุไหนขัด ---');
+
+  it('วงจรก่อเกิดถูกต้องตามตำราครบ 5 คู่', () => {
+    const generate = [['Wood', 'Fire'], ['Fire', 'Earth'], ['Earth', 'Metal'], ['Metal', 'Water'], ['Water', 'Wood']];
+    generate.forEach(([a, b]) => {
+      assert.strictEqual(relationBetween(a, b).key, 'generates', a + ' ต้องก่อเกิด ' + b);
+      assert.strictEqual(relationBetween(b, a).key, 'generatedBy', b + ' ต้องถูกก่อเกิดโดย ' + a);
+    });
+  });
+
+  it('วงจรข่มถูกต้องตามตำราครบ 5 คู่', () => {
+    const control = [['Wood', 'Earth'], ['Earth', 'Water'], ['Water', 'Fire'], ['Fire', 'Metal'], ['Metal', 'Wood']];
+    control.forEach(([a, b]) => {
+      assert.strictEqual(relationBetween(a, b).key, 'controls', a + ' ต้องข่ม ' + b);
+      assert.strictEqual(relationBetween(b, a).key, 'controlledBy', b + ' ต้องถูกข่มโดย ' + a);
+      assert.strictEqual(relationBetween(a, b).tone, 'clash', 'คู่ข่มต้องถูกทำเครื่องหมายว่าขัดกัน');
+    });
+  });
+
+  it('ตารางเทียบธาตุ 5x5 ครบทุกช่อง แบ่งเป็นหนุน 10 ขัด 10 เหมือน 5', () => {
+    const order = ['Wood', 'Fire', 'Earth', 'Metal', 'Water'];
+    const tally = { good: 0, clash: 0, neutral: 0 };
+    order.forEach(a => order.forEach(b => {
+      const rel = relationBetween(a, b);
+      assert.ok(rel && rel.shortTh && rel.explainTh, 'ทุกช่องต้องมีคำอธิบาย');
+      tally[rel.tone] += 1;
+    }));
+    assert.strictEqual(tally.good, 10);
+    assert.strictEqual(tally.clash, 10);
+    assert.strictEqual(tally.neutral, 5);
+  });
+
+  it('ข้อมูลธาตุครบทั้งสามระบบ และทุกธาตุมีเนื้อหาครบ', () => {
+    assert.strictEqual(Object.keys(CHINESE_ELEMENTS).length, 5);
+    assert.strictEqual(Object.keys(THAI_ELEMENTS_GUIDE).length, 4);
+    assert.strictEqual(Object.keys(WESTERN_ELEMENTS_GUIDE).length, 4);
+    assert.strictEqual(Object.keys(CLASH_DETAIL).length, 5, 'ต้องมีคำอธิบายคู่ที่ขัดกันครบ 5 คู่');
+
+    Object.entries(CHINESE_ELEMENTS).forEach(([key, el]) => {
+      ['nameTh', 'coreTh', 'imageTh', 'strengthTh', 'weaknessTh', 'careerTh',
+        'colorTh', 'directionTh', 'organTh', 'adviceTh'].forEach(f => {
+        assert.ok(el[f] && String(el[f]).length > 5, 'ธาตุ ' + key + ' ขาดฟิลด์ ' + f);
+      });
+      assert.ok(Array.isArray(el.traitsTh) && el.traitsTh.length >= 3, 'ธาตุ ' + key + ' ต้องมีนิสัยอย่างน้อย 3 ข้อ');
+    });
+
+    Object.entries(CLASH_DETAIL).forEach(([key, d]) => {
+      // imageTh เป็นวลีเปรียบเทียบสั้น ๆ ตั้งใจ เช่น รากไม้ชอนไชดิน
+      assert.ok(d.imageTh && d.imageTh.length >= 8, 'คู่ ' + key + ' ขาดวลีเปรียบเทียบ');
+      ['meaningTh', 'frictionTh', 'fixTh'].forEach(f => {
+        assert.ok(d[f] && String(d[f]).length > 25, 'คู่ ' + key + ' ขาดคำอธิบาย ' + f);
+      });
+    });
+  });
+
+  it('คู่ที่ขัดกันในตารางต้องตรงกับคำอธิบายที่เขียนไว้', () => {
+    Object.keys(CLASH_DETAIL).forEach(key => {
+      const [a, b] = key.split('-');
+      assert.strictEqual(relationBetween(a, b).key, 'controls',
+        'คู่ ' + key + ' ที่เขียนคำอธิบายไว้ ต้องเป็นคู่ข่มจริงในตาราง');
+    });
   });
 }

@@ -100,6 +100,43 @@ export const QUESTION_SHAPES = {
   }
 };
 
+
+const THAI_MONTHS_FULL = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน',
+  'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม'];
+const THAI_WEEKDAY_FULL = ['วันอาทิตย์', 'วันจันทร์', 'วันอังคาร', 'วันพุธ',
+  'วันพฤหัสบดี', 'วันศุกร์', 'วันเสาร์'];
+
+/**
+ * ข้อมูลวันเวลาปัจจุบัน ต้องส่งให้โมเดลทุกครั้ง
+ * ไม่งั้นโมเดลจะเดาปีจากข้อมูลที่ถูกฝึกมา แล้วตอบผิด เช่น
+ * แนะนำให้ "รอให้ผ่านปี 2024 ไปก่อน" ทั้งที่ตอนนี้เลยปีนั้นมาแล้ว
+ */
+export function currentDateContext(now = new Date()) {
+  const year = now.getFullYear();
+  const beYear = year + 543;
+  const month = now.getMonth();
+  const day = now.getDate();
+  const quarter = Math.floor(month / 3) + 1;
+  const monthsLeft = 12 - (month + 1);
+
+  return {
+    year,
+    beYear,
+    isoDate: now.toISOString().slice(0, 10),
+    thaiDateTh: THAI_WEEKDAY_FULL[now.getDay()] + 'ที่ ' + day + ' ' + THAI_MONTHS_FULL[month] + ' พ.ศ. ' + beYear,
+    quarter,
+    monthsLeft,
+    blockTh: [
+      '[วันเวลาปัจจุบัน ใช้อ้างอิงเสมอ]',
+      'วันนี้คือ ' + THAI_WEEKDAY_FULL[now.getDay()] + 'ที่ ' + day + ' ' + THAI_MONTHS_FULL[month] + ' พ.ศ. ' + beYear + ' (ค.ศ. ' + year + ')',
+      'ตอนนี้อยู่ไตรมาสที่ ' + quarter + ' ของปี เหลืออีก ' + monthsLeft + ' เดือนจะสิ้นปี',
+      'ข้อบังคับ: เวลาพูดถึงปีนี้ ปีหน้า หรือช่วงเวลาใด ๆ ให้ยึดปี พ.ศ. ' + beYear + ' (ค.ศ. ' + year + ') เป็นปีปัจจุบันเสมอ',
+      'ห้ามอ้างปีที่ผ่านไปแล้วว่าเป็นอนาคต เช่น ห้ามบอกให้รอให้ผ่านปีที่เลยมาแล้ว',
+      'ถ้าจะแนะนำช่วงเวลา ให้พูดเป็น ภายในปีนี้ ต้นปีหน้า หรือ อีก 3 เดือนข้างหน้า แทนการระบุปีตรง ๆ'
+    ].join(String.fromCharCode(10))
+  };
+}
+
 /** จับหมวดคำถามจากข้อความ */
 export function detectIntent(question) {
   const text = String(question || '').toLowerCase();
@@ -131,8 +168,12 @@ export function detectShape(question) {
  * @param {object} domains ผลคำอ่านรายด้านจาก LifeDomainsEngine
  * @param {string} intentId หมวดคำถาม
  */
-export function retrieveFacts(meta, domains, intentId) {
+export function retrieveFacts(meta, domains, intentId, now = new Date()) {
   const lines = [];
+
+  // วันเวลาปัจจุบันต้องมาก่อนเสมอ เพื่อไม่ให้โมเดลเดาปีเอง
+  lines.push(currentDateContext(now).blockTh);
+  lines.push('');
   const houses = meta.thai?.houses;
   const taksa = meta.taksa;
 
@@ -282,13 +323,15 @@ export function retrieveFacts(meta, domains, intentId) {
  * @param {string} question คำถามของผู้ใช้
  * @param {string[]} previousOpenings ประโยคเปิดของคำตอบก่อนหน้า ใช้กันตอบซ้ำ
  */
-export function buildInstruction(question, previousOpenings = []) {
+export function buildInstruction(question, previousOpenings = [], now = new Date()) {
   const intent = detectIntent(question);
   const shape = detectShape(question);
 
+  const dateInfo = currentDateContext(now);
   const parts = [
     'คำถามของผู้ใช้ครั้งนี้คือ: "' + String(question || '').trim() + '"',
     'หมวดคำถาม: ' + intent.nameTh,
+    'วันนี้คือ ' + dateInfo.thaiDateTh + ' — ทุกคำตอบต้องอ้างอิงปีนี้เท่านั้น',
     '',
     'กติกาการตอบครั้งนี้:',
     '1. ตอบเฉพาะคำถามข้างบนเท่านั้น ห้ามสรุปดวงทั้งหมดซ้ำ ห้ามเล่าเรื่องราศีหรือธาตุที่ไม่เกี่ยวกับคำถาม',
@@ -297,11 +340,13 @@ export function buildInstruction(question, previousOpenings = []) {
     '4. ภาษาไทยล้วน ห้ามใส่คำภาษาอังกฤษในวงเล็บเด็ดขาด เช่น ห้ามเขียน ราศีสิงห์ (Leo) หรือ ดวงอาทิตย์ (Sun)',
     '5. ใช้ภาษาชาวบ้าน ห้ามใช้คำเชิงกวีอย่าง วงจรชีวิต พลังงานไหลเวียน ความอุดมสมบูรณ์',
     '6. ขึ้นบรรทัดใหม่ทุกครั้งที่เปลี่ยนประเด็น หนึ่งบรรทัดต่อหนึ่งเรื่อง อย่าเขียนติดกันเป็นก้อนยาว',
-    '7. ความยาวรวมไม่เกิน 400 คำ'
+    '7. ความยาวรวมไม่เกิน 400 คำ',
+    '8. เวลาพูดถึงช่วงเวลา ให้ยึด พ.ศ. ' + dateInfo.beYear + ' เป็นปีปัจจุบัน '
+      + 'ห้ามบอกให้รอปีที่ผ่านไปแล้ว และควรพูดว่า ภายในปีนี้ หรือ อีกไม่กี่เดือนข้างหน้า แทนการระบุตัวเลขปี'
   ];
 
   if (previousOpenings.length) {
-    parts.push('8. ห้ามขึ้นต้นคำตอบซ้ำกับคำตอบก่อนหน้าเหล่านี้: '
+    parts.push('9. ห้ามขึ้นต้นคำตอบซ้ำกับคำตอบก่อนหน้าเหล่านี้: '
       + previousOpenings.map(o => '"' + o.slice(0, 40) + '"').join(' / '));
   }
 
