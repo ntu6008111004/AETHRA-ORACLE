@@ -7,6 +7,7 @@ import { I18n } from '../core/i18n.js';
 import { SoundManager } from '../core/sound.js';
 import { LifeDomainsEngine } from '../engines/life-domains.js';
 import { OracleAIService } from '../services/oracle-ai.js';
+import { ReadingView } from './reading-view.js';
 
 const TOPICS = [
   { id: 'general', nameEn: 'General Life Reflection', nameTh: 'การสะท้อนชีวิตและภาพรวม' },
@@ -75,6 +76,15 @@ function buildReadingContext(profile) {
   return lines.join(String.fromCharCode(10));
 }
 
+
+/** ตัดสัญลักษณ์ markdown ออก เพราะห้องแชทแสดงข้อความล้วน */
+function stripMarkdown(text) {
+  return String(text || '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/^#{1,4}\s+/gm, '')
+    .replace(/`/g, '');
+}
+
 function createMessageElement(message) {
   if (message.role === 'user') {
     const user = document.createElement('div');
@@ -89,9 +99,9 @@ function createMessageElement(message) {
   avatar.className = 'oracle-avatar';
   avatar.textContent = message.isLoading ? '⋯' : '✦';
   const content = document.createElement('div');
-  const paragraph = document.createElement('p');
-  paragraph.textContent = message.text;
-  content.appendChild(paragraph);
+  content.className = 'oracle-msg-content';
+  // formatAnswer escape HTML ภายในแล้ว จึงปลอดภัย และแปลงหัวข้อ/ลิสต์ให้อ่านเป็นข้อ ๆ
+  content.innerHTML = ReadingView.formatAnswer(message.text);
   oracle.append(avatar, content);
   return oracle;
 }
@@ -112,6 +122,9 @@ export class ConsultationView {
                 <small id="consultation-ai-status">กำลังจุดเทียนเปิดตำรา…</small>
               </div>
             </div>
+            <button id="consultation-clear-btn" class="header-btn" type="button" title="ล้างบทสนทนาห้องนี้" style="height: 32px; font-size: 11px; white-space: nowrap;">
+              🗑 ล้างแชท
+            </button>
             <select id="consultation-topic-select" class="consultation-topic-select" aria-label="หัวข้อการปรึกษา">
               ${TOPICS.map(topic => `<option value="${topic.id}">${I18n.getLang() === 'th' ? topic.nameTh : topic.nameEn}</option>`).join('')}
             </select>
@@ -218,7 +231,7 @@ export class ConsultationView {
 
       Storage.saveConsultationMessage(currentTopic, {
         role: 'oracle',
-        text: result.success ? result.answer : `ยังตอบด้วย AI ไม่สำเร็จ: ${result.message}`,
+        text: result.success ? stripMarkdown(result.answer) : `ขออภัยครับ ${result.message}`,
         isError: !result.success
       });
       if (result.success) {
@@ -234,6 +247,13 @@ export class ConsultationView {
       renderMessages();
       input.focus();
     };
+
+    container.querySelector('#consultation-clear-btn')?.addEventListener('click', () => {
+      if (!confirm('ล้างบทสนทนาในห้องนี้ทั้งหมด?')) return;
+      Storage.clearConsultationMessages(currentTopic);
+      SoundManager.play('ui-select');
+      renderMessages();
+    });
 
     topicSelect.addEventListener('change', event => {
       currentTopic = event.target.value;

@@ -219,4 +219,56 @@ export function runCoverageExtraTests(it) {
     ]);
     assert.strictEqual(allYin.hexagram.number, 2, 'หกเส้นหยินคือก๊กที่ 2 คุน');
   });
+
+  console.log('\n--- SECTION 26: ความลึกของคำทำนาย (ไพ่รายใบ + อี้จิง 64 ก๊ก) ---');
+
+  it('ไพ่ทั้ง 78 ใบมีความหมายเฉพาะตัวไม่ซ้ำกัน และมีคำแนะนำครบ', async () => {
+    const { TarotEngine } = await import('../js/engines/tarot.js');
+    const deck = TarotEngine.getFullDeck();
+    assert.strictEqual(deck.length, 78);
+    const meanings = new Set(deck.map(c => c.keywordsTh));
+    assert.strictEqual(meanings.size, 78, 'ความหมายไพ่ต้องไม่ซ้ำกันเลย');
+    deck.forEach(c => {
+      assert.ok(c.adviceTh && c.adviceTh.length > 15, c.nameTh + ' ต้องมีคำแนะนำ');
+      assert.ok((c.meaningTh || c.keywordsTh).length > 25, c.nameTh + ' ความหมายต้องยาวพออ่านรู้เรื่อง');
+    });
+  });
+
+  it('อี้จิงมีคำทำนายจริงครบ 64 ก๊ก ทั้งคำตัดสิน คำแนะนำ และรายด้าน', async () => {
+    const { HEXAGRAMS } = await import('../js/engines/iching.js');
+    assert.strictEqual(HEXAGRAMS.length, 64);
+    HEXAGRAMS.forEach(h => {
+      assert.ok(h.judgementTh.length > 30, 'ก๊ก ' + h.number + ' คำตัดสินต้องละเอียด');
+      assert.ok(h.adviceTh.length > 20, 'ก๊ก ' + h.number + ' ต้องมีคำแนะนำ');
+      assert.ok(h.loveTh && h.workTh && h.moneyTh, 'ก๊ก ' + h.number + ' ต้องมีคำใบ้ครบ งาน รัก เงิน');
+      assert.ok(h.imageTh && !h.imageTh.includes('over'), 'ภาพธรรมชาติต้องเป็นภาษาไทย');
+      assert.ok(h.upperRole && h.lowerRole, 'ต้องอ่านโครงสร้างตรีลักษณ์ได้');
+    });
+    const judgements = new Set(HEXAGRAMS.map(h => h.judgementTh));
+    assert.strictEqual(judgements.size, 64, 'คำตัดสินต้องไม่ซ้ำกัน');
+  });
+
+  it('ก๊กแปรผลคำนวณถูกต้องตามกฎพลิกเส้นแปร', async () => {
+    const { IChingEngine } = await import('../js/engines/iching.js');
+    // หกเส้นหยางเก่า: เฉียน (1) แปรเป็น คุน (2)
+    const allOldYang = Array.from({ length: 6 }, () => ({ isYang: true, isChanging: true }));
+    const r1 = IChingEngine.castHexagram(allOldYang);
+    assert.strictEqual(r1.hexagram.number, 1);
+    assert.strictEqual(r1.transformed.number, 2);
+    assert.strictEqual(r1.changingPositions.length, 6);
+    // ไม่มีเส้นแปร: ไม่มีก๊กแปรผล
+    const still = Array.from({ length: 6 }, () => ({ isYang: false, isChanging: false }));
+    const r2 = IChingEngine.castHexagram(still);
+    assert.strictEqual(r2.transformed, null);
+    assert.ok(r2.changingNoteTh.includes('นิ่ง'));
+  });
+
+  it('ล้างแชทห้องปรึกษาได้เฉพาะห้องที่เลือก ห้องอื่นไม่หาย', () => {
+    Storage.saveConsultationMessage('_clearA', { role: 'user', text: 'หนึ่ง' });
+    Storage.saveConsultationMessage('_clearB', { role: 'user', text: 'สอง' });
+    Storage.clearConsultationMessages('_clearA');
+    assert.strictEqual(Storage.getConsultationMessages('_clearA').length, 0);
+    assert.strictEqual(Storage.getConsultationMessages('_clearB').length, 1);
+    Storage.clearConsultationMessages('_clearB');
+  });
 }

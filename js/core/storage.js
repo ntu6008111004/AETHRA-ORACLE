@@ -158,6 +158,11 @@ class StorageManager {
     }
   }
 
+  clearConsultationMessages(topic = 'general') {
+    safeStorage.removeItem(`${STORAGE_KEYS.CONSULT_CHAT}_${topic}`);
+    return [];
+  }
+
   saveConsultationMessage(topic, message) {
     const messages = this.getConsultationMessages(topic);
     messages.push({

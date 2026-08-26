@@ -1,72 +1,111 @@
 /**
- * AETHRA ORACLE — Unified Reading View
- * บทสรุปคำอ่านชะตาแบบองค์รวม รวมทุกศาสตร์ไว้ในที่เดียว ภาษาไทยเข้าใจง่าย
+ * AETHRA ORACLE — บทสรุปชะตาชีวิตแบบองค์รวม
+ * แยกเป็นเรื่อง ๆ ทีละศาสตร์ อ่านง่าย ไม่ใช่ย่อหน้าเดียวจบ
  */
 
 import { UnifiedReadingEngine } from '../engines/unified.js';
 import { Storage } from '../core/storage.js';
-import { I18n } from '../core/i18n.js';
 import { SoundManager } from '../core/sound.js';
-import { elementFullTh } from '../core/element-names.js';
+import { FIVE_ELEMENTS } from '../engines/bazi.js';
+import { LIFE_PATH_MEANINGS_TH } from '../engines/numerology.js';
+import { elementFullTh, elementWithMeaningTh } from '../core/element-names.js';
+
+function esc(value) {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function section(icon, tagTh, titleTh, bodyHtml, sourceTh) {
+  return `
+    <article class="domain-section">
+      <h3>${icon} ${esc(titleTh)}</h3>
+      ${bodyHtml}
+      <div class="source-badge">มาจาก: ${esc(sourceTh)}</div>
+    </article>`;
+}
 
 export class UnifiedView {
   static render(container) {
     const profile = Storage.getProfile();
     const result = UnifiedReadingEngine.synthesize(profile);
+    const name = profile.nickname || profile.name || 'ผู้แสวงหาปัญญา';
+
+    if (!result.astrology) {
+      container.innerHTML = `
+        <div class="reading-wrapper">
+          <div class="empty-state-card">
+            <div class="empty-state-icon">🔮</div>
+            <h2>ยังสรุปดวงชะตาไม่ได้</h2>
+            <p>${esc(result.synthesis.summaryTh)}</p>
+            <a href="#profile" class="btn btn-primary"><span>ไปกรอกวันเกิด</span></a>
+          </div>
+        </div>`;
+      return;
+    }
+
+    const astro = result.astrology;
+    const bazi = result.bazi;
+    const num = result.numerology;
+    const card = result.tarot[0];
+    const dayMasterInfo = FIVE_ELEMENTS[bazi.dayMaster.element];
+    const lifePathInfo = LIFE_PATH_MEANINGS_TH[num.lifePath] || LIFE_PATH_MEANINGS_TH[1];
+
+    const sections = [
+      section('☀️', 'โหราศาสตร์สากล', 'ตัวตนของคุณตามราศี',
+        `<p>ราศีเกิดของคุณคือ <strong>ราศี${esc(astro.western.sun.nameTh)}</strong> (${esc(elementWithMeaningTh(astro.western.sun.element))})
+        ส่วนดวงจันทร์ซึ่งแทนจิตใจอยู่ใน <strong>ราศี${esc(astro.western.moon.nameTh)}</strong>
+        แปลง่าย ๆ ว่า ภายนอกคุณแสดงออกแบบชาวราศี${esc(astro.western.sun.nameTh)}
+        แต่ความรู้สึกลึก ๆ ข้างในทำงานแบบชาวราศี${esc(astro.western.moon.nameTh)}
+        ${astro.western.ascendant
+          ? `และลัคนาราศี${esc(astro.western.ascendant.nameTh)} คือภาพแรกที่คนอื่นมองเห็นคุณ`
+          : 'ส่วนลัคนายังคำนวณไม่ได้เพราะไม่ทราบเวลาเกิดที่แน่นอน'}</p>`,
+        'ตำแหน่งดวงอาทิตย์ ดวงจันทร์ และลัคนา ณ เวลาเกิดของคุณ'),
+
+      section('🏮', 'ดวงจีน', 'ธาตุแท้ประจำตัวของคุณ',
+        `<p>ธาตุประจำตัวคุณคือ <strong>${esc(elementFullTh(bazi.dayMaster.element))}</strong>
+        (${esc(bazi.dayMaster.nameTh)} — ${esc(bazi.dayMaster.imageTh)})</p>
+        <p style="margin-top: 8px;">${esc(dayMasterInfo.lifeTh)}</p>
+        <p style="margin-top: 8px;">สายงานที่ถูกโฉลก: ${esc(dayMasterInfo.careerTh)}</p>
+        <p style="margin-top: 8px;">${esc(bazi.strength.plainTh)}</p>
+        <p style="margin-top: 8px;">ธาตุที่ควรเสริมคือ <strong>ธาตุ${esc(bazi.favourableElementsTh.join(' และธาตุ'))}</strong>
+        ผ่านสีเสื้อผ้า ${esc(bazi.favourableColorsTh.join(' / '))}</p>`,
+        'ผังโป๊ยหยี่สี่เถียว คำนวณจากวันเดือนปีเกิดตามปฏิทินสุริยคติจีน'),
+
+      section('🔢', 'เลขศาสตร์', 'เลขเส้นทางชีวิตหมายเลข ' + num.lifePath,
+        `<p><strong>"${esc(lifePathInfo.title)}"</strong></p>
+        <p style="margin-top: 8px;">${esc(lifePathInfo.desc)}</p>
+        <p style="margin-top: 8px;">ปีนี้คุณอยู่ในจังหวะชีวิตหมายเลข <strong>${num.personalYear}</strong>
+        ${num.personalYear <= 3 ? 'ซึ่งเป็นช่วงต้นรอบ เหมาะกับการเริ่มต้นและหว่านเมล็ดสิ่งใหม่' :
+          num.personalYear <= 6 ? 'ซึ่งเป็นช่วงกลางรอบ เหมาะกับการลงมือสร้างและดูแลสิ่งที่เริ่มไว้ให้โต' :
+          'ซึ่งเป็นช่วงปลายรอบ เหมาะกับการเก็บเกี่ยว สรุปบทเรียน และปล่อยสิ่งที่หมดอายุ'}</p>`,
+        'การลดทอนตัวเลขจากวันเดือนปีเกิดตามหลักเลขศาสตร์สากล'),
+
+      section('🃏', 'ไพ่นำทาง', 'สัญลักษณ์ประจำช่วงนี้: ' + card.nameTh,
+        `<p>${esc(card.meaningTh || card.keywordsTh)}</p>
+        ${card.adviceTh ? `<p style="margin-top: 8px;"><strong style="color:#68D391;">คำแนะนำ:</strong> ${esc(card.adviceTh)}</p>` : ''}
+        <p style="margin-top: 8px; font-size: 12px; color: var(--color-text-muted);">
+        ไพ่ใบนี้สุ่มใหม่ทุกครั้งที่เปิดหน้านี้ ใช้เป็นมุมมองเสริม ไม่ใช่คำตัดสิน</p>`,
+        'การสุ่มไพ่ 1 ใบจากสำรับ 78 ใบ'),
+
+      section('🧭', 'สรุป', 'อ่านสามพลังรวมกัน',
+        `<p>${esc(result.synthesis.summaryTh)}</p>
+        <p style="margin-top: 10px;">ถ้าอยากอ่านแบบเจาะลึกรายด้าน ทั้งการงาน การเงิน ความรัก สุขภาพ และโชคลาภ
+        พร้อมสีมงคลและเลขมงคลเฉพาะตัว ไปที่หน้า <a href="#reading" class="notice-link">ดูดวงของฉัน</a>
+        หรือถามต่อกับหมอดูที่ <a href="#consultation" class="notice-link">ห้องปรึกษา</a></p>`,
+        'การสังเคราะห์ธาตุ ราศี และเลขทั้งหมดข้างต้น')
+    ];
 
     container.innerHTML = `
-      <div class="unified-view-wrapper">
-        <div class="hero-badge" style="margin-bottom: var(--space-2);">
-          <span>✦</span> <span>คำอ่านดวงชะตาแบบองค์รวม</span> <span>✦</span>
-        </div>
-        <h1 style="font-size: clamp(1.75rem, 4vw, 2.5rem); margin-bottom: var(--space-2);">บทสรุปชะตาชีวิตของคุณ</h1>
-        <p style="color: var(--color-text-secondary); font-size: var(--font-size-base); margin-bottom: var(--space-8);">
-          หลอมรวมโหราศาสตร์สากล พระเวท ดวงจีนโป๊ยหยี่ เลขศาสตร์ และไพ่ยิปซี เพื่อให้ได้คำตอบที่ชัดเจนที่สุดสำหรับคุณ
-        </p>
-
-        <!-- Master Synthesis Card -->
-        <div class="editorial-card theme-unified" style="margin-bottom: var(--space-8); background: radial-gradient(circle at top, rgba(229, 195, 120, 0.08) 0%, #13151D 100%);">
-          <div class="editorial-card-header">
-            <span class="tradition-tag">บทอ่านชะตาสำหรับคุณ</span>
-            <span style="font-size: var(--font-size-xs); color: var(--color-gold-bright); font-weight: 600;">
-              คุณ: ${profile.nickname || profile.name || 'ผู้แสวงหาปัญญา'}
-            </span>
+      <div class="unified-view-wrapper reading-wrapper">
+        <div>
+          <div class="hero-badge" style="margin-bottom: var(--space-2);">
+            <span>✦</span> <span>คำอ่านดวงชะตาแบบองค์รวม</span> <span>✦</span>
           </div>
-
-          <h3 class="font-editorial" style="font-size: clamp(1.25rem, 3vw, 1.75rem); line-height: 1.6; color: var(--color-gold-light); margin-bottom: var(--space-6);">
-            "${result.synthesis.summaryTh || result.synthesis.summaryEn}"
-          </h3>
-
-          ${result.astrology ? `<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-4); margin-top: var(--space-6); border-top: var(--border-subtle); padding-top: var(--space-6);">
-            <div style="background: rgba(12, 13, 16, 0.4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); border: var(--border-subtle);">
-              <div style="font-size: 11px; color: var(--color-text-muted);">☉ ราศีเกิดและราศีจิตใจ</div>
-              <div style="font-weight: 600; color: var(--color-gold-bright); font-size: var(--font-size-sm); margin-top: 2px;">
-                ราศี${result.astrology.western.sun.nameTh} · พระจันทร์ราศี${result.astrology.western.moon.nameTh}
-              </div>
-            </div>
-
-            <div style="background: rgba(12, 13, 16, 0.4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); border: var(--border-subtle);">
-              <div style="font-size: 11px; color: var(--color-text-muted);">🏮 ธาตุแท้ประจำตัว (โป๊ยหยี่)</div>
-              <div style="font-weight: 600; color: var(--color-gold-bright); font-size: var(--font-size-sm); margin-top: 2px;">
-                ${result.bazi.dayMaster.nameTh || result.bazi.dayMaster.pinyin} (${elementFullTh(result.bazi.dayMaster.element)})
-              </div>
-            </div>
-
-            <div style="background: rgba(12, 13, 16, 0.4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); border: var(--border-subtle);">
-              <div style="font-size: 11px; color: var(--color-text-muted);">🔢 เลขนำทางชีวิต</div>
-              <div style="font-weight: 600; color: var(--color-gold-bright); font-size: var(--font-size-sm); margin-top: 2px;">
-                หมายเลข ${result.numerology.lifePath}
-              </div>
-            </div>
-
-            <div style="background: rgba(12, 13, 16, 0.4); padding: var(--space-3) var(--space-4); border-radius: var(--radius-sm); border: var(--border-subtle);">
-              <div style="font-size: 11px; color: var(--color-text-muted);">🃏 สัญลักษณ์ไพ่นำทาง</div>
-              <div style="font-weight: 600; color: var(--color-gold-bright); font-size: var(--font-size-sm); margin-top: 2px;">
-                ${result.synthesis.keyArchetypeTh || result.synthesis.keyArchetype}
-              </div>
-            </div>
-          </div>` : ''}
+          <h1 style="font-size: clamp(1.75rem, 4vw, 2.5rem); margin-bottom: var(--space-2);">บทสรุปชะตาชีวิตของคุณ${esc(name)}</h1>
+          <p style="color: var(--color-text-secondary); font-size: var(--font-size-base);">
+            อ่านทีละเรื่อง จากสี่ศาสตร์ที่คำนวณจากวันเกิดของคุณจริง ๆ
+          </p>
         </div>
+        <div class="domain-sections">${sections.join('')}</div>
       </div>
     `;
 

@@ -14,6 +14,9 @@
  */
 
 const LOCAL_CHAT_ENDPOINT = '/api/oracle/chat';
+// เซิร์ฟเวอร์กลางของเจ้าของโปรเจกต์ (คุม CORS เองได้ ไม่โดน Cloudflare ของ ThaiLLM สุ่มบล็อก)
+const PROXY_CHAT_ENDPOINT = 'https://catlog-api.dentcos.com/api/thaillm/chat/completions';
+const PROXY_HEALTH_ENDPOINT = 'https://catlog-api.dentcos.com/api/thaillm/health';
 const LOCAL_HEALTH_ENDPOINT = '/api/oracle/health';
 const REQUEST_TIMEOUT_MS = 90000;
 
@@ -56,22 +59,66 @@ function normalizeMessages(messages) {
     .filter(message => message.content);
 }
 
+async function probeJson(url, timeoutMs = 6000) {
+  try {
+    const response = await fetch(url, { cache: 'no-store', signal: AbortSignal.timeout(timeoutMs) });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 async function detectMode() {
   if (cachedMode) return cachedMode;
-  try {
-    const response = await fetch(LOCAL_HEALTH_ENDPOINT, { cache: 'no-store' });
-    if (response.ok) {
-      const payload = await response.json();
-      if (payload?.success && payload?.configured) {
-        cachedMode = 'server';
-        return cachedMode;
-      }
-    }
-  } catch {
-    /* ไม่มีเซิร์ฟเวอร์ = โหมด static */
+
+  // 1) เซิร์ฟเวอร์ AETHRA ในเครื่อง (ตอนพัฒนา)
+  const local = await probeJson(LOCAL_HEALTH_ENDPOINT, 3000);
+  if (local?.success && local?.configured) {
+    cachedMode = 'server';
+    return cachedMode;
   }
+
+  // 2) เซิร์ฟเวอร์กลาง catlog-api (ทางหลักของเว็บจริงบน GitHub Pages)
+  const proxy = await probeJson(PROXY_HEALTH_ENDPOINT, 6000);
+  if (proxy?.success && proxy?.configured) {
+    cachedMode = 'proxy';
+    return cachedMode;
+  }
+
+  // 3) เรียก ThaiLLM ตรง (สำรองสุดท้าย อาจโดน Cloudflare บล็อกในบางเครือข่าย)
   cachedMode = 'direct';
   return cachedMode;
+}
+
+/** เรียกผ่านเซิร์ฟเวอร์กลาง catlog-api (รูปแบบ OpenAI-compatible) */
+async function callProxy(messages, context, purpose, signal) {
+  const systemPrompt = SYSTEM_PROMPT_BASE
+    + String.fromCharCode(10) + 'ประเภทคำขอ: ' + purpose
+    + String.fromCharCode(10) + 'บริบทที่ระบบคำนวณไว้แล้ว:' + String.fromCharCode(10)
+    + (context || 'ไม่มีข้อมูลดวงเพิ่มเติม');
+
+  const response = await fetch(PROXY_CHAT_ENDPOINT, {
+    method: 'POST',
+    signal,
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      max_tokens: 6144,
+      temperature: 0.55,
+      messages: [{ role: 'system', content: systemPrompt }, ...messages]
+    })
+  });
+
+  const payload = await response.json().catch(() => ({}));
+  const answer = payload.choices?.[0]?.message?.content;
+  if (!response.ok || !answer) {
+    return {
+      success: false,
+      error: response.status === 429 ? 'rate_limit' : 'provider_error',
+      message: payload.error?.message || 'ดวงดาวยังไม่เรียงตัว กรุณากดถามอีกครั้ง'
+    };
+  }
+  return { success: true, rawAnswer: answer, model: 'pathumma-thaillm-qwen3-8b-think-3.0.0', usage: payload.usage || null };
 }
 
 /** เรียก ThaiLLM ตรงจากเบราว์เซอร์แบบเลี่ยง preflight */
@@ -147,10 +194,23 @@ export class OracleAIService {
     const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
     try {
       const mode = await detectMode();
-      const result = mode === 'server'
-        ? await callServer(normalized, context, purpose, controller.signal)
-        : await callDirect(normalized, context, purpose, controller.signal);
+      const order = mode === 'server'
+        ? ['server', 'proxy', 'direct']
+        : mode === 'proxy' ? ['proxy', 'direct'] : ['direct', 'proxy'];
 
+      let result = null;
+      for (const attempt of order) {
+        if (attempt === 'server') result = await callServer(normalized, context, purpose, controller.signal);
+        else if (attempt === 'proxy') result = await callProxy(normalized, context, purpose, controller.signal).catch(() => null);
+        else result = await callDirect(normalized, context, purpose, controller.signal).catch(() => null);
+
+        if (result?.success) {
+          cachedMode = attempt;
+          break;
+        }
+      }
+
+      if (!result) result = { success: false, error: 'network_error', message: 'เชื่อมต่อห้องปรึกษาไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' };
       if (!result.success) return result;
 
       const parsed = parseOracleThinking(result.rawAnswer);

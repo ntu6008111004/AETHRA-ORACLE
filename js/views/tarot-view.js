@@ -7,6 +7,8 @@ import { TarotEngine } from '../engines/tarot.js';
 import { SoundManager } from '../core/sound.js';
 import { I18n } from '../core/i18n.js';
 import { Storage } from '../core/storage.js';
+import { OracleAIService } from '../services/oracle-ai.js';
+import { ReadingView } from './reading-view.js';
 import { elementWithMeaningTh } from '../core/element-names.js';
 
 export function isKeyboardActivationKey(key) {
@@ -140,25 +142,67 @@ export class TarotView {
 
     const renderInterpretation = (cards) => {
       interpPanel.style.display = 'block';
+      const positionIntro = [
+        'รากฐานของเรื่องนี้ สิ่งที่ผ่านมาและยังส่งผลอยู่',
+        'หัวใจของสถานการณ์ตอนนี้ พลังงานที่กำลังทำงานอยู่จริง',
+        'ทิศทางที่เรื่องนี้กำลังมุ่งไป ถ้าคุณเดินต่อแบบเดิม'
+      ];
+
       interpPanel.innerHTML = `
         <div class="editorial-card theme-tarot" style="border: 2px solid var(--color-gold-bright);">
           <div class="editorial-card-header">
             <span class="tradition-tag" style="font-size: var(--font-size-xs); background: rgba(212, 175, 55, 0.2);">
-              📜 คำทำนายและคำแนะนำจากไพ่ทั้ง 3 ใบ
+              📜 คำทำนายจากไพ่ทั้ง 3 ใบ (อ่านจากบนลงล่างเหมือนหมอดูเล่าให้ฟัง)
             </span>
             <span style="font-size: var(--font-size-xs); color: var(--color-gold-bright);">เปิดครบ 3 ใบแล้ว</span>
           </div>
+
           <div style="display: flex; flex-direction: column; gap: var(--space-5);">
             ${cards.map((c, i) => `
-              <div style="border-bottom: var(--border-subtle); padding-bottom: var(--space-4);">
-                <div style="font-size: var(--font-size-sm); color: var(--color-gold-bright); font-weight: 700; margin-bottom: 2px;">
-                  ${positions[i].labelTh}: <span style="color: #FFFFFF; font-size: var(--font-size-base);">${c.nameTh}</span> ${c.isReversed ? '<span style="color: #FC8181; font-size: 12px;">(ไพ่กลับหัว: ทบทวนอย่างระมัดระวัง)</span>' : ''}
+              <div style="border-bottom: var(--border-subtle); padding-bottom: var(--space-5);">
+                <div style="font-size: var(--font-size-sm); color: var(--color-gold-bright); font-weight: 700; margin-bottom: 4px;">
+                  ${positions[i].labelTh}
                 </div>
-                <p style="font-size: var(--font-size-sm); color: var(--color-text-primary); margin-top: 4px; line-height: 1.6;">
-                  👉 <strong>ความหมายและคำแนะนำ:</strong> ${c.keywordsTh}
+                <div style="font-size: var(--font-size-lg); font-weight: 700; color: #FFFFFF; margin-bottom: 2px;">
+                  ${c.nameTh} ${c.isReversed ? '<span style="color: #FC8181; font-size: 12px; font-weight: 600;">(กลับหัว)</span>' : ''}
+                </div>
+                <div style="font-size: 11px; color: var(--color-text-muted); margin-bottom: var(--space-2);">
+                  ${positionIntro[i]}
+                </div>
+                <p style="font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.85; margin-bottom: var(--space-2);">
+                  <strong style="color: var(--color-gold-light);">ความหมาย:</strong> ${c.meaningTh || c.keywordsTh}
                 </p>
+                ${c.adviceTh ? `<p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.8; margin-bottom: var(--space-2);">
+                  <strong style="color: #68D391;">คำแนะนำ:</strong> ${c.adviceTh}
+                </p>` : ''}
+                ${c.isReversed && c.reversedTh ? `<p style="font-size: var(--font-size-sm); color: #FEB2B2; line-height: 1.8;">
+                  ${c.reversedTh}
+                </p>` : ''}
               </div>
             `).join('')}
+          </div>
+
+          <div style="background: rgba(12, 13, 16, 0.6); border-left: 4px solid var(--color-gold-bright); padding: var(--space-4) var(--space-5); border-radius: var(--radius-sm); margin-top: var(--space-5);">
+            <div style="font-size: 11px; color: var(--color-gold-bright); font-weight: 700; margin-bottom: 4px;">🔮 อ่านภาพรวมทั้งสามใบ:</div>
+            <p style="font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.85;">
+              เรื่องราวของคุณเริ่มจากพลังของ "${cards[0].nameTh}" ในอดีต ส่งต่อมาที่ "${cards[1].nameTh}" ซึ่งคือสิ่งที่กำลังเกิดขึ้นจริงตอนนี้
+              และถ้าเดินต่อตามเส้นทางเดิม ไพ่ "${cards[2].nameTh}" บอกทิศทางข้างหน้าไว้แล้ว
+              จุดที่ควรใส่ใจที่สุดคือใบกลาง เพราะเป็นสิ่งเดียวที่คุณเปลี่ยนได้จริงในตอนนี้
+            </p>
+          </div>
+
+          <div class="ai-block" style="margin-top: var(--space-5);">
+            <div class="ai-block-head">
+              <div>
+                <strong>อยากให้ตีความเจาะจงกับเรื่องของคุณ?</strong>
+                <p>พิมพ์เรื่องที่ถามใจไว้ตอนสับไพ่ แล้วให้หมอดู AI ตีความไพ่ทั้ง 3 ใบกับเรื่องนั้นโดยตรง</p>
+              </div>
+            </div>
+            <div class="ai-followup" style="display: flex;">
+              <input type="text" id="tarot-ai-question" class="ai-followup-input" placeholder="เช่น ถามเรื่องย้ายงาน / เรื่องคนที่คุยอยู่" />
+              <button type="button" class="btn btn-primary" id="tarot-ai-btn"><span>ตีความ</span></button>
+            </div>
+            <div class="ai-answer" id="tarot-ai-answer" hidden></div>
           </div>
         </div>
       `;
@@ -167,6 +211,41 @@ export class TarotView {
         type: 'Tarot',
         spread: '3-Card Past-Present-Future',
         cards: cards.map(c => ({ name: c.nameTh, reversed: c.isReversed }))
+      });
+
+      interpPanel.querySelector('#tarot-ai-btn')?.addEventListener('click', async () => {
+        const btn = interpPanel.querySelector('#tarot-ai-btn');
+        const answerBox = interpPanel.querySelector('#tarot-ai-answer');
+        const question = interpPanel.querySelector('#tarot-ai-question').value.trim() || 'ภาพรวมชีวิตช่วงนี้';
+
+        btn.disabled = true;
+        btn.querySelector('span').textContent = 'กำลังตีความ…';
+        answerBox.hidden = false;
+        answerBox.innerHTML = '<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span> หมอดูกำลังเพ่งไพ่ทั้งสามใบกับคำถามของคุณ…</div>';
+
+        const context = [
+          'ผลการเปิดไพ่ทาโรต์ 3 ใบ (อดีต-ปัจจุบัน-อนาคต) ที่สุ่มได้จริง:',
+          ...cards.map((c, i) => `${positions[i].labelTh}: ${c.nameTh}${c.isReversed ? ' (กลับหัว)' : ''} — ${c.meaningTh || c.keywordsTh}`),
+          'เรื่องที่ผู้ถามตั้งจิตไว้: ' + question
+        ].join(String.fromCharCode(10));
+
+        const response = await OracleAIService.sendChat(
+          [{ role: 'user', content: 'ช่วยตีความไพ่ทั้ง 3 ใบนี้กับเรื่องที่ฉันถามโดยเฉพาะ เล่าเชื่อมโยงทั้งสามใบเป็นเรื่องเดียวกัน และปิดท้ายด้วยคำแนะนำ 3 ข้อที่ทำได้จริง' }],
+          { purpose: 'tarot:interpretation', context }
+        );
+
+        btn.disabled = false;
+        btn.querySelector('span').textContent = 'ตีความ';
+        if (!response.success) {
+          answerBox.innerHTML = `<div class="ai-error"><strong>ยังตีความไม่สำเร็จ</strong><p>${response.message}</p></div>`;
+          return;
+        }
+        answerBox.innerHTML = `
+          <div class="ai-answer-body">
+            <div class="ai-answer-tag">✦ คำตีความเฉพาะเรื่องของคุณ</div>
+            ${ReadingView.formatAnswer(response.answer)}
+          </div>`;
+        SoundManager.play('reading-complete');
       });
     };
 

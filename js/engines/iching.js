@@ -3,6 +3,8 @@
  * 64 Hexagrams, Trigrams, and 3-Bronze-Coin divination method.
  */
 
+import { HEXAGRAM_MEANINGS, TRIGRAM_ROLES } from './iching-meanings.js';
+
 export const TRIGRAMS = {
   '111': { nameEn: 'Heaven', nameTh: 'ฟ้า (เฉียน)', symbol: '☰', nature: 'Creative, Strong' },
   '000': { nameEn: 'Earth', nameTh: 'ดิน (คุน)', symbol: '☷', nature: 'Receptive, Yielding' },
@@ -124,7 +126,15 @@ export const HEXAGRAMS = KING_WEN_NUMBERS.flatMap((row, upperIndex) =>
       nameEn,
       nameTh,
       judgementEn: special?.judgementEn || `${nameEn} calls for measured attention to timing, relationships, and the consequences of the next step.`,
-      judgementTh: special?.judgementTh || `${nameTh} ชวนให้พิจารณาจังหวะ ความสัมพันธ์ และผลของก้าวต่อไปอย่างมีสติ`,
+      judgementTh: HEXAGRAM_MEANINGS[number]?.j || special?.judgementTh || `${nameTh} ชวนให้พิจารณาจังหวะ ความสัมพันธ์ และผลของก้าวต่อไปอย่างมีสติ`,
+      adviceTh: HEXAGRAM_MEANINGS[number]?.a || '',
+      loveTh: HEXAGRAM_MEANINGS[number]?.love || '',
+      workTh: HEXAGRAM_MEANINGS[number]?.work || '',
+      moneyTh: HEXAGRAM_MEANINGS[number]?.money || '',
+      upperRole: TRIGRAM_ROLES[upperKey],
+      lowerRole: TRIGRAM_ROLES[lowerKey],
+      upperTrigram: TRIGRAMS[upperKey],
+      lowerTrigram: TRIGRAMS[lowerKey],
       imageEn: `${TRIGRAMS[upperKey].nameEn} over ${TRIGRAMS[lowerKey].nameEn}.`,
       imageTh: `${TRIGRAMS[upperKey].nameTh}อยู่เหนือ${TRIGRAMS[lowerKey].nameTh}`
     };
@@ -166,10 +176,28 @@ export class IChingEngine {
 
     if (!matched) throw new Error(`Missing deterministic hexagram mapping for ${binary}.`);
 
+    const changingPositions = lines
+      .map((line, index) => (line.isChanging ? index + 1 : null))
+      .filter(Boolean);
+
+    // ก๊กแปรผล: พลิกเส้นแปรทุกเส้น (หยินเก่า -> หยาง, หยางเก่า -> หยิน)
+    let transformed = null;
+    if (changingPositions.length > 0) {
+      const flipped = lines.map(line => (line.isChanging ? !line.isYang : line.isYang));
+      const transformedBinary = [...flipped].reverse().map(v => (v ? '1' : '0')).join('');
+      transformed = HEXAGRAMS.find(h => h.binary === transformedBinary) || null;
+    }
+
     return {
       lines,
       hexagram: matched,
-      hasChangingLines: lines.some(l => l.isChanging)
+      hasChangingLines: changingPositions.length > 0,
+      changingPositions,
+      changingNoteTh: changingPositions.length > 0
+        ? 'มีเส้นแปร ' + changingPositions.length + ' เส้น (เส้นที่ ' + changingPositions.join(', ')
+          + ' นับจากล่าง) หมายถึงสถานการณ์กำลังเคลื่อนจากก๊กแรกไปสู่ก๊กแปรผล คำทำนายแรกคือ "ตอนนี้" ก๊กแปรผลคือ "ทิศทางที่กำลังมุ่งไป"'
+        : 'ไม่มีเส้นแปร หมายถึงสถานการณ์ค่อนข้างนิ่ง คำทำนายก๊กนี้ใช้ได้ตรง ๆ กับช่วงเวลานี้',
+      transformed
     };
   }
 }

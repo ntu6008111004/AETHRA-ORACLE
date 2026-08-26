@@ -3,6 +3,7 @@
  * Complete 78-Card Deck (22 Major Arcana + 56 Minor Arcana)
  */
 import { elementFullTh } from '../core/element-names.js';
+import { MAJOR_EXTRA, MINOR_MEANINGS } from './tarot-meanings.js';
 
 export const MAJOR_ARCANA = [
   { id: 0, nameEn: "The Fool", nameTh: "เดอะฟูล (The Fool)", element: "Air", keywordsEn: "New beginnings, spontaneity, pure potential", keywordsTh: "การเริ่มต้นใหม่ ความบริสุทธิ์ใจ ความกล้าที่จะก้าวสู่สิ่งไม่รู้" },
@@ -38,7 +39,14 @@ export const SUITS = [
 
 export class TarotEngine {
   static getFullDeck() {
-    const deck = [...MAJOR_ARCANA.map(c => ({ ...c, type: 'major', suit: 'major' }))];
+    const deck = [...MAJOR_ARCANA.map(c => ({
+      ...c,
+      type: 'major',
+      suit: 'major',
+      meaningTh: c.keywordsTh,
+      adviceTh: MAJOR_EXTRA[c.id]?.a || '',
+      reversedTh: MAJOR_EXTRA[c.id]?.r || ''
+    }))];
     
     // Generate Minor Arcana
     SUITS.forEach(suit => {
@@ -60,6 +68,7 @@ export class TarotEngine {
       ];
 
       ranks.forEach(r => {
+        const detail = MINOR_MEANINGS[suit.id]?.[r.rank] || {};
         deck.push({
           id: `${suit.id}_${r.rank.toLowerCase()}`,
           nameEn: `${r.rank} of ${suit.nameEn}`,
@@ -68,7 +77,10 @@ export class TarotEngine {
           suit: suit.id,
           element: suit.element,
           keywordsEn: `Energy of ${suit.element} expressed through ${r.rank}`,
-          keywordsTh: `พลัง${elementFullTh(suit.element)} ในมิติของ${r.nameTh} สื่อถึงจังหวะของเรื่องนั้นตั้งแต่เริ่มต้นจนสมบูรณ์`
+          keywordsTh: detail.m || `พลัง${elementFullTh(suit.element)} ในมิติของ${r.nameTh}`,
+          meaningTh: detail.m || '',
+          adviceTh: detail.a || '',
+          reversedTh: 'ไพ่กลับหัว: พลังของไพ่ใบนี้ถูกปิดกั้น มาช้า หรือแสดงออกในด้านกลับ ให้อ่านความหมายเดิมแล้วถามว่าอะไรกำลังขวางพลังนั้นอยู่'
         });
       });
     });

@@ -1598,3 +1598,10 @@ html:lang(th) h3 {
 .consultation-ai-dot[data-state="online"] { background: #68D391; box-shadow: 0 0 8px rgba(104, 211, 145, 0.6); }
 .consultation-ai-dot[data-state="working"] { background: #ECC94B; box-shadow: 0 0 8px rgba(236, 201, 75, 0.6); animation: aiPulse 1s ease-in-out infinite; }
 .consultation-ai-dot[data-state="offline"] { background: #FC8181; box-shadow: 0 0 8px rgba(252, 129, 129, 0.5); }
+
+/* Oracle chat message: formatted content */
+.oracle-msg-content h4 { font-size: 13px; color: var(--color-gold-light); margin: 10px 0 4px; }
+.oracle-msg-content h4:first-child { margin-top: 0; }
+.oracle-msg-content p { font-size: var(--font-size-sm); line-height: 1.8; margin-bottom: 6px; }
+.oracle-msg-content ul { margin: 4px 0 8px 18px; display: grid; gap: 4px; }
+.oracle-msg-content li { font-size: var(--font-size-sm); line-height: 1.7; }
