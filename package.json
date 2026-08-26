@@ -1,0 +1,26 @@
+{
+  "name": "aethra-oracle",
+  "version": "1.0.0",
+  "description": "AETHRA ORACLE — Celestial Observatory & Multi-Tradition Personal Divination",
+  "type": "module",
+  "scripts": {
+    "generate-assets": "node scripts/generate-assets.js",
+    "test": "node tests/test-suite.js",
+    "coverage": "c8 --include=js/engines/** --include=js/core/** node tests/test-suite.js"
+  },
+  "keywords": [
+    "astrology",
+    "divination",
+    "tarot",
+    "bazi",
+    "iching",
+    "numerology",
+    "aethra"
+  ],
+  "author": "AETHRA ORACLE Team",
+  "license": "MIT",
+  "devDependencies": {
+    "c8": "^12.0.0",
+    "sharp": "^0.35.3"
+  }
+}

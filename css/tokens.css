@@ -1,0 +1,144 @@
+/**
+ * AETHRA ORACLE — Design Tokens
+ * Philosophy: Private Observatory & Celestial Manuscript
+ */
+
+:root {
+  /* Color Palette — Core Celestial */
+  --color-obsidian: #0C0D10;
+  --color-surface-base: #0C0D10;
+  --color-surface-elevated: #13151D;
+  --color-surface-panel: #181B26;
+  --color-surface-highlight: #1F2333;
+  --color-surface-overlay: rgba(12, 13, 16, 0.88);
+
+  /* Gold & Manuscript Accents */
+  --color-gold-light: #F2DFAB;
+  --color-gold-primary: #C5A059;
+  --color-gold-deep: #8F6E32;
+  --color-gold-bright: #E5C378;
+  --color-bronze: #B87333;
+  
+  /* Text & Editorial Hierarchy */
+  --color-text-primary: #F5F2EB;     /* Warm Ivory */
+  --color-text-secondary: #C8CDD6;   /* Cool Silver-Grey */
+  --color-text-muted: #838A99;       /* Slate Astrolabe Muted */
+  --color-text-gold: #E5C378;        /* Antique Gold Callout */
+
+  /* Tradition-Specific Palettes */
+  --color-western-accent: #C5A059;   /* Observatory Gold */
+  --color-thai-accent: #D4AF37;      /* Thai Gold Leaf */
+  --color-vedic-accent: #4361EE;     /* Deep Cosmic Indigo */
+  --color-bazi-accent: #B02A37;      /* Vermilion Cinnabar & Jade */
+  --color-bazi-jade: #2E6F62;
+  --color-numerology-accent: #9A8C98; /* Architectural Silver */
+  --color-tarot-accent: #D4AF37;     /* Velvet Gold Foil */
+  --color-iching-accent: #C59B27;    /* Bronze Coin */
+  --color-consultation-accent: #E2C974;
+
+  /* Feedback & Status */
+  --color-success: #38A169;
+  --color-error: #C53030;
+  --color-warning: #D69E2E;
+  --color-info: #3182CE;
+
+  /* Borders & Dividers */
+  --border-subtle: 1px solid rgba(197, 160, 89, 0.16);
+  --border-medium: 1px solid rgba(197, 160, 89, 0.32);
+  --border-gold: 1px solid rgba(229, 195, 120, 0.6);
+  --border-glass: 1px solid rgba(245, 242, 235, 0.08);
+
+  /* Spacing Scale (4px / 8px base) */
+  --space-0: 0px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+
+  /* Typography */
+  --font-serif: 'Cinzel', 'Cinzel Decorative', 'Cormorant Garamond', 'Georgia', serif;
+  --font-editorial: 'Cormorant Garamond', 'Georgia', serif;
+  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-thai: 'Sarabun', 'Noto Sans Thai', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+  /* Typography Scale */
+  --font-size-2xs: 0.6875rem; /* 11px */
+  --font-size-xs: 0.75rem;    /* 12px */
+  --font-size-sm: 0.875rem;   /* 14px */
+  --font-size-base: 1rem;     /* 16px */
+  --font-size-lg: 1.125rem;   /* 18px */
+  --font-size-xl: 1.25rem;    /* 20px */
+  --font-size-2xl: 1.5rem;    /* 24px */
+  --font-size-3xl: 1.875rem;  /* 30px */
+  --font-size-4xl: 2.25rem;   /* 36px */
+  --font-size-5xl: 3rem;      /* 48px */
+  --font-size-6xl: 3.75rem;   /* 60px */
+
+  /* Border Radii */
+  --radius-none: 0px;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 9999px;
+
+  /* Shadows (Restrained depth) */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 20px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.8);
+  --shadow-gold-glow: 0 0 24px rgba(197, 160, 89, 0.18);
+
+  /* Motion & Easings */
+  --duration-fast: 150ms;
+  --duration-normal: 260ms;
+  --duration-slow: 450ms;
+  --ease-celestial: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Hierarchy */
+  --z-base: 1;
+  --z-sticky: 100;
+  --z-drawer: 200;
+  --z-modal: 500;
+  --z-toast: 1000;
+  --z-splash: 2000;
+
+  /* Mobile Safe Areas */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+/* Light Mode Overrides (Parhment Manuscript) */
+[data-theme="light"] {
+  --color-surface-base: #F5F2EB;
+  --color-surface-elevated: #EDE7DC;
+  --color-surface-panel: #E3DCCE;
+  --color-surface-highlight: #D8D0C0;
+  --color-surface-overlay: rgba(245, 242, 235, 0.92);
+
+  --color-text-primary: #1C1917;
+  --color-text-secondary: #4A443B;
+  --color-text-muted: #787164;
+  --color-text-gold: #8F6E32;
+
+  --border-subtle: 1px solid rgba(143, 110, 50, 0.2);
+  --border-medium: 1px solid rgba(143, 110, 50, 0.38);
+  --border-gold: 1px solid rgba(143, 110, 50, 0.65);
+  --border-glass: 1px solid rgba(28, 25, 23, 0.08);
+
+  --shadow-sm: 0 2px 8px rgba(28, 25, 23, 0.08);
+  --shadow-md: 0 4px 18px rgba(28, 25, 23, 0.12);
+  --shadow-lg: 0 8px 30px rgba(28, 25, 23, 0.18);
+  --shadow-gold-glow: 0 0 20px rgba(143, 110, 50, 0.12);
+}

@@ -1,0 +1,113 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630" fill="none">
+  <!-- AETHRA ORACLE — Open Graph 1200x630 Social Card -->
+  <defs>
+    <radialGradient id="ogGlow" cx="50%" cy="50%" r="55%">
+      <stop offset="0%" stop-color="#C5A059" stop-opacity="0.12"/>
+      <stop offset="60%" stop-color="#141722" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0C0D10" stop-opacity="1"/>
+    </radialGradient>
+    <linearGradient id="ogGoldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#F9ECD0"/>
+      <stop offset="45%" stop-color="#D4AF37"/>
+      <stop offset="100%" stop-color="#8F6E32"/>
+    </linearGradient>
+    <linearGradient id="ogLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#C5A059" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#C5A059" stop-opacity="0.5"/>
+      <stop offset="100%" stop-color="#C5A059" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Obsidian Deep Background -->
+  <rect width="1200" height="630" fill="#0C0D10"/>
+  <rect width="1200" height="630" fill="url(#ogGlow)"/>
+
+  <!-- Celestial Background Grid & Coordinate Lines -->
+  <g stroke="#C5A059" stroke-width="0.75" stroke-opacity="0.12">
+    <!-- Concentric Celestial Rings -->
+    <circle cx="600" cy="315" r="520"/>
+    <circle cx="600" cy="315" r="420" stroke-dasharray="3 6"/>
+    <circle cx="600" cy="315" r="320"/>
+    <circle cx="600" cy="315" r="220" stroke-dasharray="2 4"/>
+
+    <!-- Coordinate Lines -->
+    <line x1="80" y1="315" x2="1120" y2="315"/>
+    <line x1="600" y1="30" x2="600" y2="600"/>
+    <line x1="236" y1="105" x2="964" y2="525"/>
+    <line x1="236" y1="525" x2="964" y2="105"/>
+  </g>
+
+  <!-- Micro Constellation Nodes -->
+  <g fill="#E5C378" opacity="0.4">
+    <circle cx="280" cy="180" r="2"/>
+    <circle cx="340" cy="150" r="1.5"/>
+    <circle cx="410" cy="195" r="2.5"/>
+    <circle cx="920" cy="180" r="2"/>
+    <circle cx="860" cy="150" r="1.5"/>
+    <circle cx="790" cy="195" r="2.5"/>
+    <circle cx="280" cy="450" r="2"/>
+    <circle cx="350" cy="480" r="1.5"/>
+    <circle cx="920" cy="450" r="2"/>
+    <circle cx="850" cy="480" r="1.5"/>
+  </g>
+
+  <!-- Outer Double Border Frame -->
+  <rect x="36" y="36" width="1128" height="558" stroke="#C5A059" stroke-width="1" stroke-opacity="0.3"/>
+  <rect x="44" y="44" width="1112" height="542" stroke="#C5A059" stroke-width="0.5" stroke-opacity="0.15"/>
+  
+  <!-- Corner Celestial Brackets -->
+  <g stroke="#C5A059" stroke-width="1.5" stroke-opacity="0.7">
+    <path d="M 32,56 L 32,32 L 56,32"/>
+    <path d="M 1168,56 L 1168,32 L 1144,32"/>
+    <path d="M 32,574 L 32,598 L 56,598"/>
+    <path d="M 1168,574 L 1168,598 L 1144,598"/>
+  </g>
+
+  <!-- Central Celestial Symbol Mark -->
+  <g transform="translate(600, 180) scale(0.68) translate(-100, -100)">
+    <circle cx="100" cy="100" r="82" stroke="url(#ogGoldGrad)" stroke-width="2.2" stroke-opacity="0.9"/>
+    <circle cx="100" cy="100" r="76" stroke="url(#ogGoldGrad)" stroke-width="1" stroke-dasharray="2 4" stroke-opacity="0.6"/>
+
+    <g stroke="url(#ogGoldGrad)" stroke-width="1.5" stroke-linecap="round" opacity="0.85">
+      <line x1="100" y1="18" x2="100" y2="24"/>
+      <line x1="100" y1="176" x2="100" y2="182"/>
+      <line x1="18" y1="100" x2="24" y2="100"/>
+      <line x1="176" y1="100" x2="182" y2="100"/>
+    </g>
+
+    <ellipse cx="100" cy="100" rx="68" ry="32" transform="rotate(-23.5 100 100)" stroke="url(#ogGoldGrad)" stroke-width="1.8" stroke-opacity="0.9"/>
+    <path d="M 60,100 A 40,40 0 0,1 140,100 A 40,46 0 0,0 60,100 Z" fill="url(#ogGoldGrad)" fill-opacity="0.25" stroke="url(#ogGoldGrad)" stroke-width="1.2"/>
+
+    <line x1="100" y1="36" x2="100" y2="164" stroke="url(#ogGoldGrad)" stroke-width="1" stroke-opacity="0.7"/>
+    <line x1="36" y1="100" x2="164" y2="100" stroke="url(#ogGoldGrad)" stroke-width="1" stroke-opacity="0.7"/>
+
+    <polygon points="100,68 103.5,94 126,88 106,100 126,112 103.5,106 100,132 96.5,106 74,112 94,100 74,88 96.5,94" fill="url(#ogGoldGrad)"/>
+    <circle cx="100" cy="100" r="5" fill="#0C0D10" stroke="url(#ogGoldGrad)" stroke-width="2"/>
+    <circle cx="100" cy="100" r="1.8" fill="#F5F2EB"/>
+
+    <circle cx="48" cy="78" r="2.8" fill="#E5C378"/>
+    <circle cx="152" cy="122" r="2.8" fill="#E5C378"/>
+  </g>
+
+  <!-- Typography -->
+  <!-- AETHRA -->
+  <text x="600" y="325" text-anchor="middle" font-family="'Cinzel', 'Cinzel Decorative', 'Georgia', serif" font-size="52" font-weight="700" letter-spacing="16" fill="url(#ogGoldGrad)">AETHRA</text>
+  
+  <!-- ORACLE -->
+  <text x="600" y="368" text-anchor="middle" font-family="'Plus Jakarta Sans', 'Inter', sans-serif" font-size="16" font-weight="600" letter-spacing="12" fill="#DCD3C4" opacity="0.95">ORACLE</text>
+
+  <!-- Editorial Divider -->
+  <line x1="380" y1="400" x2="820" y2="400" stroke="url(#ogLineGrad)" stroke-width="1"/>
+  <circle cx="600" cy="400" r="3" fill="#D4AF37"/>
+  <circle cx="480" cy="400" r="1.5" fill="#C5A059"/>
+  <circle cx="720" cy="400" r="1.5" fill="#C5A059"/>
+
+  <!-- English Tagline -->
+  <text x="600" y="445" text-anchor="middle" font-family="'Cormorant Garamond', 'Georgia', serif" font-style="italic" font-size="28" font-weight="400" letter-spacing="2" fill="#F5F2EB">Many traditions. One personal reading.</text>
+
+  <!-- Thai Tagline -->
+  <text x="600" y="488" text-anchor="middle" font-family="'Sarabun', sans-serif" font-size="19" font-weight="400" letter-spacing="1.5" fill="#B0B6C4" opacity="0.9">หลากศาสตร์พยากรณ์ หนึ่งคำอ่านที่เป็นของคุณ</text>
+
+  <!-- Bottom Badge / Features List -->
+  <text x="600" y="540" text-anchor="middle" font-family="'Plus Jakarta Sans', sans-serif" font-size="11" font-weight="500" letter-spacing="4" fill="#787E8E">WESTERN · THAI · VEDIC · BAZI · NUMEROLOGY · TAROT · I CHING</text>
+</svg>

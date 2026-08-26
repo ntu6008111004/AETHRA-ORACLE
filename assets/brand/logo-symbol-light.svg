@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200" width="100%" height="100%" fill="none">
+  <!-- AETHRA ORACLE — Celestial Symbol Mark (Light Parchment Background) -->
+  <defs>
+    <radialGradient id="symbolGlowLight" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#C5A059" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#F5F2EB" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="goldGradLight" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8F6E32"/>
+      <stop offset="50%" stop-color="#A67C2E"/>
+      <stop offset="100%" stop-color="#5C4518"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="200" height="200" rx="100" fill="#F5F2EB"/>
+  <circle cx="100" cy="100" r="90" fill="url(#symbolGlowLight)"/>
+
+  <!-- Outer Celestial Meridian Ring -->
+  <circle cx="100" cy="100" r="82" stroke="url(#goldGradLight)" stroke-width="1.5" stroke-opacity="0.85"/>
+  <circle cx="100" cy="100" r="76" stroke="url(#goldGradLight)" stroke-width="0.75" stroke-dasharray="2 4" stroke-opacity="0.6"/>
+
+  <!-- 12 Cardinal & Zodiacal Tick Markers -->
+  <g stroke="url(#goldGradLight)" stroke-width="1" stroke-linecap="round" opacity="0.9">
+    <line x1="100" y1="18" x2="100" y2="24"/>
+    <line x1="100" y1="176" x2="100" y2="182"/>
+    <line x1="18" y1="100" x2="24" y2="100"/>
+    <line x1="176" y1="100" x2="182" y2="100"/>
+    <line x1="42" y1="42" x2="47" y2="47"/>
+    <line x1="153" y1="153" x2="158" y2="158"/>
+    <line x1="158" y1="42" x2="153" y2="47"/>
+    <line x1="47" y1="153" x2="42" y2="158"/>
+  </g>
+
+  <!-- Tilted Ecliptic Ring -->
+  <ellipse cx="100" cy="100" rx="68" ry="32" transform="rotate(-23.5 100 100)" stroke="url(#goldGradLight)" stroke-width="1.25" stroke-opacity="0.9"/>
+  
+  <!-- Counter-Orbit Crescent Ring -->
+  <path d="M 60,100 A 40,40 0 0,1 140,100 A 40,46 0 0,0 60,100 Z" fill="url(#goldGradLight)" fill-opacity="0.15" stroke="url(#goldGradLight)" stroke-width="1"/>
+
+  <!-- Celestial Cross & Equinoctial Colure -->
+  <line x1="100" y1="36" x2="100" y2="164" stroke="url(#goldGradLight)" stroke-width="0.75" stroke-opacity="0.7"/>
+  <line x1="36" y1="100" x2="164" y2="100" stroke="url(#goldGradLight)" stroke-width="0.75" stroke-opacity="0.7"/>
+
+  <!-- Central Star of AETHRA (8-Point Celestial Compass) -->
+  <polygon points="100,68 103.5,94 126,88 106,100 126,112 103.5,106 100,132 96.5,106 74,112 94,100 74,88 96.5,94" fill="url(#goldGradLight)"/>
+  
+  <!-- Core Luminary Eye / Monogram Axis Node -->
+  <circle cx="100" cy="100" r="4.5" fill="#F5F2EB" stroke="url(#goldGradLight)" stroke-width="1.5"/>
+  <circle cx="100" cy="100" r="1.5" fill="#5C4518"/>
+
+  <!-- Node Orbital Pearls -->
+  <circle cx="48" cy="78" r="2" fill="#8F6E32"/>
+  <circle cx="152" cy="122" r="2" fill="#8F6E32"/>
+  <circle cx="100" cy="24" r="1.5" fill="#5C4518"/>
+  <circle cx="100" cy="176" r="1.5" fill="#5C4518"/>
+</svg>

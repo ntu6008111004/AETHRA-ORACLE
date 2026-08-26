@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>AETHRA ORACLE — หอดูดาวและศาสตร์พยากรณ์ส่วนบุคคล</title>
+  
+  <!-- SEO & Application Metadata -->
+  <meta name="description" content="AETHRA ORACLE หลากศาสตร์พยากรณ์ หนึ่งคำอ่านที่เป็นของคุณ รวมโหราศาสตร์ไทย สากล พระเวท ปาจื้อ เลขศาสตร์ ไพ่ทาโรต์ และอี้จิง สีมงคลประจำวัน เลขนำโชค">
+  <meta name="application-name" content="AETHRA ORACLE">
+  <meta name="theme-color" content="#0C0D10">
+  <meta name="color-scheme" content="dark">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AETHRA">
+
+  <!-- Open Graph / Social Media Preview (1200x630) -->
+  <meta property="og:title" content="AETHRA ORACLE — ศาสตร์พยากรณ์ส่วนบุคคล">
+  <meta property="og:description" content="Many traditions. One personal reading. หลากศาสตร์พยากรณ์ หนึ่งคำอ่านที่เป็นของคุณ.">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="./">
+  <meta property="og:site_name" content="AETHRA ORACLE">
+  <meta property="og:image" content="./assets/social/og-aethra-oracle.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="AETHRA ORACLE Brand Card">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="AETHRA ORACLE — ศาสตร์พยากรณ์ส่วนบุคคล">
+  <meta name="twitter:description" content="หลากศาสตร์พยากรณ์ หนึ่งคำอ่านที่เป็นของคุณ">
+  <meta name="twitter:image" content="./assets/social/og-aethra-oracle.png">
+
+  <!-- Favicons & Icons Matrix -->
+  <link rel="icon" type="image/svg+xml" href="./assets/icons/favicon.svg">
+  <link rel="icon" type="image/png" sizes="32x32" href="./assets/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="./assets/icons/favicon-16x16.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./assets/icons/apple-touch-icon.png">
+  <link rel="manifest" href="./manifest.webmanifest">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="./css/tokens.css">
+  <link rel="stylesheet" href="./css/index.css">
+</head>
+<body>
+
+  <!-- 1. INTRO SPLASH SCREEN -->
+  <div id="intro-splash" class="intro-splash" role="dialog" aria-modal="true" aria-label="Aethra Loading">
+    <div class="intro-symbol-wrapper">
+      <svg class="intro-symbol-svg" viewBox="0 0 200 200" fill="none">
+        <circle cx="100" cy="100" r="82" stroke="#D4AF37" stroke-width="1.8"/>
+        <circle cx="100" cy="100" r="76" stroke="#D4AF37" stroke-width="0.8" stroke-dasharray="2 4"/>
+        <ellipse cx="100" cy="100" rx="68" ry="32" transform="rotate(-23.5 100 100)" stroke="#E5C378" stroke-width="1.4"/>
+        <polygon points="100,68 103.5,94 126,88 106,100 126,112 103.5,106 100,132 96.5,106 74,112 94,100 74,88 96.5,94" fill="#F2DFAB"/>
+        <circle cx="100" cy="100" r="4.5" fill="#0C0D10" stroke="#E5C378" stroke-width="1.5"/>
+        <circle cx="100" cy="100" r="1.5" fill="#FFFFFF"/>
+      </svg>
+    </div>
+    <div class="intro-brand-title">AETHRA</div>
+    <div class="intro-brand-sub">หอดูดาวและศาสตร์พยากรณ์</div>
+    <button id="intro-skip-btn" class="intro-skip-btn">ข้ามบทนำ</button>
+  </div>
+
+  <!-- 2. STICKY GLOBAL HEADER -->
+  <header class="site-header">
+    <div class="container header-inner">
+      <!-- Brand Logo -->
+      <a href="#home" class="brand-logo-link" aria-label="AETHRA ORACLE หน้าหลัก">
+        <svg viewBox="0 0 320 60" width="160" height="30" fill="none" style="height: 34px; width: auto;">
+          <g transform="translate(4, 4) scale(0.25)">
+            <circle class="logo-orbit-ring" cx="100" cy="100" r="82" stroke="#D4AF37" stroke-width="2.5"/>
+            <ellipse class="logo-orbit-ring" cx="100" cy="100" rx="68" ry="32" transform="rotate(-23.5 100 100)" stroke="#E5C378" stroke-width="2"/>
+            <polygon points="100,68 103.5,94 126,88 106,100 126,112 103.5,106 100,132 96.5,106 74,112 94,100 74,88 96.5,94" fill="#F2DFAB"/>
+            <circle cx="100" cy="100" r="5" fill="#0C0D10" stroke="#E5C378" stroke-width="2"/>
+          </g>
+          <text x="64" y="34" font-family="'Cinzel', serif" font-size="20" font-weight="600" letter-spacing="4" fill="#E5C378">AETHRA</text>
+          <text x="65" y="47" font-family="'Plus Jakarta Sans', sans-serif" font-size="8" font-weight="500" letter-spacing="3.5" fill="#C5BDB0">ORACLE</text>
+        </svg>
+      </a>
+
+      <!-- Desktop Navigation Links -->
+      <nav class="nav-desktop" aria-label="เมนูหลัก">
+        <a href="#home" class="nav-link is-active" data-i18n="nav_home">หน้าหลัก</a>
+        <a href="#reading" class="nav-link nav-link-highlight">ดูดวงของฉัน</a>
+        <a href="#match" class="nav-link">ดวงสมพงศ์</a>
+        <a href="#traditions" class="nav-link" data-i18n="nav_traditions">ศาสตร์พยากรณ์</a>
+        <a href="#tarot" class="nav-link" data-i18n="nav_tarot">ไพ่ทาโรต์</a>
+        <a href="#iching" class="nav-link" data-i18n="nav_iching">อี้จิง</a>
+        <a href="#unified" class="nav-link" data-i18n="nav_unified">อ่านดวงแบบองค์รวม</a>
+        <a href="#consultation" class="nav-link" data-i18n="nav_consultation">ห้องปรึกษา</a>
+      </nav>
+
+      <!-- Header Utilities (Lang, Sound, Profile, Mobile Menu) -->
+      <div class="header-actions">
+        <button id="header-lang-toggle" class="header-btn" title="เปลี่ยนภาษา (TH / EN)">
+          EN
+        </button>
+
+        <button id="header-sound-toggle" class="header-btn" title="เปิด/ปิดเสียงเอฟเฟกต์">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4AF37" stroke-width="2">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+          </svg>
+        </button>
+
+        <a href="#profile" class="profile-seal-btn" title="ผังดวงและตราประทับส่วนบุคคล">
+          <svg viewBox="0 0 100 100" fill="none">
+            <circle cx="50" cy="50" r="44" stroke="#D4AF37" stroke-width="2"/>
+            <polygon points="50,25 53,44 72,40 56,50 72,60 53,56 50,75 47,56 28,60 44,50 28,40 47,44" fill="#E5C378"/>
+          </svg>
+        </a>
+
+        <button id="mobile-menu-trigger" class="mobile-menu-trigger" aria-label="เปิดเมนูนำทาง" aria-expanded="false">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- 3. MOBILE FULL-SCREEN NAVIGATION DRAWER -->
+  <div id="mobile-nav-drawer" class="mobile-nav-drawer" role="dialog" aria-modal="true" aria-label="เมนูนำทางบนมือถือ">
+    <div class="mobile-nav-header">
+      <span class="brand-text font-serif" style="font-size: var(--font-size-xl);">AETHRA ORACLE</span>
+      <button id="mobile-menu-close" class="header-btn" aria-label="ปิดเมนู">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <ul class="mobile-nav-links">
+      <li><a href="#home" class="mobile-nav-link" data-i18n="nav_home">หน้าหลัก</a></li>
+      <li><a href="#reading" class="mobile-nav-link">ดูดวงของฉัน (ครบทุกศาสตร์)</a></li>
+      <li><a href="#match" class="mobile-nav-link">ดวงสมพงศ์ / เนื้อคู่</a></li>
+      <li><a href="#traditions" class="mobile-nav-link" data-i18n="nav_traditions">ศาสตร์พยากรณ์</a></li>
+      <li><a href="#tarot" class="mobile-nav-link" data-i18n="nav_tarot">ไพ่ทาโรต์</a></li>
+      <li><a href="#iching" class="mobile-nav-link" data-i18n="nav_iching">อี้จิง</a></li>
+      <li><a href="#unified" class="mobile-nav-link" data-i18n="nav_unified">อ่านดวงแบบองค์รวม</a></li>
+      <li><a href="#consultation" class="mobile-nav-link" data-i18n="nav_consultation">ห้องปรึกษา</a></li>
+      <li><a href="#profile" class="mobile-nav-link" data-i18n="nav_profile">ผังดวงส่วนตัว</a></li>
+    </ul>
+
+    <div class="mobile-nav-footer">
+      <button class="footer-link" data-action="open-about" data-i18n="nav_about">เกี่ยวกับคำอ่าน</button>
+      <span style="font-size: var(--font-size-xs); color: var(--color-text-muted);">AETHRA v1.0</span>
+    </div>
+  </div>
+
+  <!-- 4. MANDATORY CELESTIAL INDUCTION MODAL (ONBOARDING) -->
+  <dialog id="onboarding-modal" class="celestial-dialog onboarding-dialog">
+    <div class="onboarding-modal-inner">
+      <!-- Left / Top Seal Canvas Preview -->
+      <div class="onboarding-seal-col">
+        <div class="hero-badge" style="margin-bottom: var(--space-2);">
+          <span data-i18n="onboarding_badge">ผูกดวงชะตาแรกเข้า</span>
+        </div>
+        <div class="personal-seal-canvas-wrapper" style="width: 150px; height: 150px; margin: var(--space-2) auto;">
+          <canvas id="onboard-seal-canvas" width="150" height="150"></canvas>
+        </div>
+        <div style="font-size: var(--font-size-xs); color: var(--color-gold-bright); margin-top: var(--space-2);">
+          <span data-i18n="onboarding_quality_label">ระดับความแม่นยำของผลการคำนวณ</span>: <strong id="onboard-quality-text">100%</strong>
+        </div>
+        <div class="quality-meter-track" style="width: 80%; height: 4px; background: rgba(197, 160, 89, 0.2); border-radius: 2px; margin: var(--space-2) auto; overflow: hidden;">
+          <div id="onboard-quality-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #C5A059, #E5C378); transition: width 0.3s ease;"></div>
+        </div>
+      </div>
+
+      <!-- Right Form Column -->
+      <div class="onboarding-form-col">
+        <h3 style="font-size: var(--font-size-xl); color: var(--color-gold-light); margin-bottom: var(--space-2);" data-i18n="onboarding_title">
+          บันทึกพิกัดกำเนิดดวงดาวของคุณ
+        </h3>
+        <p style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-bottom: var(--space-4);" data-i18n="onboarding_desc">
+          เพื่อการคำนวณตำแหน่งดาวเคราะห์ ลัคนา ธาตุทั้งห้า (BaZi) และรหัสตัวเลขเฉพาะบุคคลอย่างแม่นยำ กรุณาระบุข้อมูลกำเนิด ข้อมูลทั้งหมดจะถูกเก็บอย่างปลอดภัยบนเครื่องของคุณเท่านั้น
+        </p>
+
+        <form id="onboarding-form">
+          <!-- 1. ชื่อจริงและชื่อเล่น -->
+          <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--space-3); margin-bottom: var(--space-3);">
+            <div>
+              <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="profile_fullname_label">
+                ชื่อจริง–นามสกุล
+              </label>
+              <input type="text" id="onboard-full-name" class="consultation-textarea" style="width: 100%; min-height: 40px;" placeholder="เช่น สมชาย ใจดี" required />
+            </div>
+            <div>
+              <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="profile_nickname_label">
+                ชื่อเล่น
+              </label>
+              <input type="text" id="onboard-nickname" class="consultation-textarea" style="width: 100%; min-height: 40px;" placeholder="เช่น ชาย" required />
+            </div>
+          </div>
+
+          <!-- 2. พลังงานประจำตัว -->
+          <div style="margin-bottom: var(--space-3);">
+            <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="onboarding_gender_label">
+              พลังงานประจำตัว (หยิน / หยาง)
+            </label>
+            <select id="onboard-gender" class="consultation-textarea" style="width: 100%; min-height: 40px;">
+              <option value="yang" data-i18n="onboarding_gender_yang">พลังหยาง (เพศชาย / พลังสุริยะขับเคลื่อน)</option>
+              <option value="yin" data-i18n="onboarding_gender_yin">พลังหยิน (เพศหญิง / พลังจันทราโอบอุ้ม)</option>
+              <option value="unspecified" selected data-i18n="onboarding_gender_neutral">สมดุลพลังงาน / ไม่ระบุ</option>
+            </select>
+          </div>
+
+          <!-- 3. วันเกิดและเวลาเกิด -->
+          <div style="display: grid; grid-template-columns: 1.4fr 1.2fr; gap: var(--space-3); margin-bottom: var(--space-2);">
+            <div>
+              <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="profile_birthdate_label">
+                วัน/เดือน/ปีเกิด (ค.ศ.)
+              </label>
+              <input type="date" id="onboard-date" class="consultation-textarea" style="width: 100%; min-height: 40px;" required />
+            </div>
+            <div>
+              <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="profile_birthtime_label">
+                เวลาเกิด (หากทราบ)
+              </label>
+              <input type="time" id="onboard-time" class="consultation-textarea" style="width: 100%; min-height: 40px;" required />
+            </div>
+          </div>
+
+          <!-- checkbox ไม่ทราบวันเกิด / เวลาเกิด -->
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-3); margin-bottom: var(--space-3);">
+            <label style="display: inline-flex; align-items: center; gap: var(--space-2); font-size: 11px; color: var(--color-text-muted); cursor: pointer;">
+              <input type="checkbox" id="onboard-date-unknown" style="accent-color: var(--color-gold-bright);" />
+              <span data-i18n="onboarding_date_unknown">ไม่ทราบวันเกิดที่แน่นอน</span>
+            </label>
+            <label style="display: inline-flex; align-items: center; gap: var(--space-2); font-size: 11px; color: var(--color-text-muted); cursor: pointer;">
+              <input type="checkbox" id="onboard-time-unknown" style="accent-color: var(--color-gold-bright);" />
+              <span data-i18n="onboarding_time_unknown">ไม่ทราบเวลาเกิดที่แน่นอน (ระบบจะใช้เวลา 12:00 น.)</span>
+            </label>
+          </div>
+
+          <!-- 4. สถานที่เกิด: พิมพ์เองได้ พร้อมเมืองแนะนำ -->
+          <div style="margin-bottom: var(--space-3);">
+            <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="onboarding_city_label">
+              สถานที่เกิด (พิมพ์ชื่อเมือง หรือเลือกจากรายการแนะนำ)
+            </label>
+            <input type="text" id="onboard-city" class="consultation-textarea" style="width: 100%; min-height: 40px;"
+              list="birthplace-suggestions" placeholder="เช่น กรุงเทพฯ, เชียงใหม่, ขอนแก่น" autocomplete="off" required />
+            <datalist id="birthplace-suggestions"></datalist>
+            <label style="display: inline-flex; align-items: center; gap: var(--space-2); font-size: 11px; color: var(--color-text-muted); cursor: pointer; margin-top: var(--space-2);">
+              <input type="checkbox" id="onboard-place-unknown" style="accent-color: var(--color-gold-bright);" />
+              <span data-i18n="onboarding_place_unknown">ไม่ทราบสถานที่เกิดที่แน่นอน</span>
+            </label>
+          </div>
+
+          <!-- คำเตือนเมื่อติ๊กไม่ทราบข้อมูล -->
+          <p id="onboard-unknown-warning" hidden style="font-size: 11px; color: #ECC94B; background: rgba(236, 201, 75, 0.08); border: 1px solid rgba(236, 201, 75, 0.3); border-radius: 8px; padding: var(--space-2) var(--space-3); margin-bottom: var(--space-3); line-height: 1.6;"></p>
+
+          <!-- 5. หัวข้อที่สนใจ -->
+          <div style="margin-bottom: var(--space-4);">
+            <label style="display: block; font-size: var(--font-size-xs); color: var(--color-text-secondary); margin-bottom: 2px;" data-i18n="onboarding_focus_label">
+              หัวข้อที่ต้องการเน้นเป็นพิเศษ
+            </label>
+            <select id="onboard-focus" class="consultation-textarea" style="width: 100%; min-height: 40px;">
+              <option value="general" data-i18n="onboarding_focus_general">ภาพรวมชีวิตและชะตาชีวิต</option>
+              <option value="love" data-i18n="onboarding_focus_love">ความรัก ความสัมพันธ์ และดุลยภาพหัวใจ</option>
+              <option value="career" data-i18n="onboarding_focus_career">การงาน การเงิน และเป้าหมายความสำเร็จ</option>
+              <option value="spiritual" data-i18n="onboarding_focus_spiritual">การเติบโตภายใน จิตวิญญาณ และการค้นหาตัวตน</option>
+            </select>
+          </div>
+
+          <!-- ปุ่มบันทึก -->
+          <div style="display: flex; justify-content: flex-end;">
+            <button type="submit" class="btn btn-primary" style="width: 100%;">
+              <span data-i18n="onboarding_submit_btn">ประทับตราดวงชะตาและเริ่มต้น</span>
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 5. HERO SECTION & INTERACTIVE ASTROLABE -->
+  <section id="hero-section" class="hero-section">
+    <div class="container">
+      <div class="hero-badge">
+        <span>✦</span> <span data-i18n="hero_badge">หอดูดาวส่วนบุคคล</span> <span>✦</span>
+      </div>
+      <h1 class="hero-title brand-text">AETHRA ORACLE</h1>
+      <p class="hero-tagline" data-i18n="tagline">หลากศาสตร์พยากรณ์ หนึ่งคำอ่านที่เป็นของคุณ</p>
+      <p class="hero-tagline-th" data-i18n="tagline_sub">
+        หลอมรวมภูมิปัญญาคัมภีร์ดึกดำบรรพ์ สู่คำอ่านดวงชะตาส่วนบุคคลที่ลุ่มลึกและเข้าใจง่าย
+      </p>
+
+      <div class="hero-cta-group">
+        <a href="#reading" class="btn btn-primary">
+          <span data-i18n="hero_cta_begin">เริ่มต้นอ่านดวงชะตา</span>
+        </a>
+        <a href="#consultation" class="btn btn-secondary">
+          <span data-i18n="hero_cta_consult">เข้าสู่ห้องปรึกษา</span>
+        </a>
+      </div>
+
+      <!-- Interactive Celestial Instrument Canvas -->
+      <div class="hero-astrolabe-container">
+        <canvas id="astrolabe-canvas" class="astrolabe-canvas" width="540" height="540" aria-label="Interactive Celestial Astrolabe"></canvas>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. MAIN DYNAMIC APPLICATION CONTAINER -->
+  <main id="app-main-content" class="container" style="min-height: 50vh;">
+    <!-- Rendered dynamically by Router -->
+  </main>
+
+  <!-- 7. ACCESSIBLE ABOUT & DISCLAIMER MODAL -->
+  <dialog id="about-modal" class="celestial-dialog">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-4); border-bottom: var(--border-subtle); padding-bottom: var(--space-2);">
+      <h3 style="font-size: var(--font-size-xl); color: var(--color-gold-bright);" data-i18n="about_title">เจตนารมณ์และจริยธรรมของคำพยากรณ์</h3>
+      <button id="about-modal-close" class="header-btn" aria-label="ปิดหน้าต่าง">✕</button>
+    </div>
+    <div style="color: var(--color-text-secondary); font-size: var(--font-size-sm); display: flex; flex-direction: column; gap: var(--space-3);">
+      <p data-i18n="about_p1">
+        AETHRA ORACLE ถูกสร้างขึ้นเพื่อเป็นพื้นที่สงบแห่งการสะท้อนมุมมองชีวิตผ่านภูมิปัญญาโบราณ
+      </p>
+      <p data-i18n="about_p2">
+        คำอ่านทั้งหมดมุ่งเน้นเพื่อการเข้าใจตนเอง การตัดสินใจอย่างมีสติ และความสงบทางปัญญา
+      </p>
+      <div style="padding: var(--space-4); background: rgba(197, 160, 89, 0.08); border-left: 3px solid var(--color-gold-primary); border-radius: var(--radius-sm);">
+        <strong style="color: var(--color-gold-bright);">ข้อสำคัญ:</strong>
+        <p data-i18n="about_disclaimer" style="margin-top: 4px;">
+          ศาสตร์พยากรณ์มิอาจใช้แทนคำแนะนำทางการแพทย์ คำปรึกษาทางกฎหมาย หรือการวางแผนการเงินโดยผู้เชี่ยวชาญ
+        </p>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- 8. GLOBAL FOOTER -->
+  <footer class="site-footer">
+    <div class="container">
+      <div class="footer-grid">
+        <!-- Brand Info -->
+        <div>
+          <div class="brand-text font-serif" style="font-size: var(--font-size-lg); margin-bottom: var(--space-2);">AETHRA ORACLE</div>
+          <p style="font-size: var(--font-size-xs); color: var(--color-text-muted); max-width: 320px; margin-bottom: var(--space-4);">
+            หอดูดาวส่วนบุคคลและคำพยากรณ์ชะตาชีวิตเฉพาะบุคคล
+          </p>
+          <div style="font-size: var(--font-size-2xs); color: var(--color-text-muted);">
+            พิกัดหอดูดาว: 13.7563° N, 100.5018° E
+          </div>
+        </div>
+
+        <!-- Explore Links -->
+        <div>
+          <div class="footer-col-title">เมนูหลัก</div>
+          <ul class="footer-links">
+            <li><a href="#home" class="footer-link" data-i18n="nav_home">หน้าหลัก</a></li>
+            <li><a href="#traditions" class="footer-link" data-i18n="nav_traditions">ศาสตร์พยากรณ์</a></li>
+            <li><a href="#tarot" class="footer-link" data-i18n="nav_tarot">ไพ่ทาโรต์</a></li>
+            <li><a href="#iching" class="footer-link" data-i18n="nav_iching">อี้จิง</a></li>
+            <li><a href="#unified" class="footer-link" data-i18n="nav_unified">อ่านดวงแบบองค์รวม</a></li>
+            <li><a href="#consultation" class="footer-link" data-i18n="nav_consultation">ห้องปรึกษา</a></li>
+          </ul>
+        </div>
+
+        <!-- Traditions -->
+        <div>
+          <div class="footer-col-title">ศาสตร์พยากรณ์</div>
+          <ul class="footer-links">
+            <li><a href="#reading" class="footer-link">ดูดวงของฉัน (ครบทุกศาสตร์)</a></li>
+            <li><a href="#match" class="footer-link">ดวงสมพงศ์ / เช็คเนื้อคู่</a></li>
+            <li><a href="#traditions" class="footer-link">โหราศาสตร์สากล (12 ราศี)</a></li>
+            <li><a href="#traditions" class="footer-link">โหราศาสตร์ไทย (สุริยยาตร์)</a></li>
+            <li><a href="#traditions" class="footer-link">โหราศาสตร์พระเวท (นวางศ์จักร)</a></li>
+            <li><a href="#traditions" class="footer-link">ดวงจีนโป๊ยหยี่ 4 แถว</a></li>
+            <li><a href="#traditions" class="footer-link">รหัสตัวเลขศาสตร์สากล</a></li>
+          </ul>
+        </div>
+
+        <!-- About & Privacy -->
+        <div>
+          <div class="footer-col-title">ข้อมูลความปลอดภัย</div>
+          <ul class="footer-links">
+            <li><a href="#" class="footer-link" data-action="open-about" data-i18n="nav_about">เกี่ยวกับคำอ่าน</a></li>
+            <li><a href="#profile" class="footer-link" data-i18n="nav_profile">ผังดวงส่วนตัว</a></li>
+            <li><span class="footer-link" style="color: var(--color-text-muted);">บันทึกข้อมูลในเครื่องของคุณเท่านั้น</span></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="footer-bottom">
+        <div>
+          &copy; 2026 AETHRA ORACLE. เพื่อการสะท้อนความคิดและสติปัญญาในการดำเนินชีวิต
+        </div>
+        <div style="font-size: var(--font-size-xs); color: var(--color-text-muted);">
+          หลากศาสตร์พยากรณ์ หนึ่งคำอ่านที่เป็นของคุณ
+        </div>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Application Bootstrap -->
+  <script type="module" src="./js/app.js"></script>
+</body>
+</html>
