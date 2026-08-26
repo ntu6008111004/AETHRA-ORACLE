@@ -9,6 +9,7 @@ import { SoundManager } from '../core/sound.js';
 import { PhoneNumerologyEngine, DIGIT_PLANETS } from '../engines/phone-numerology.js';
 import { TaksaEngine } from '../engines/thai-taksa.js';
 import { PLANET_NUMBERS } from '../engines/life-domains.js';
+import { METHOD_USED, AGREED_POINTS_TH, DISPUTED_POINTS, HONESTY_NOTE_TH, BIRTH_LINK_METHOD, SOURCES, CONFIDENCE_LEVELS } from '../data/phone-methodology.js';
 import { OracleAIService } from '../services/oracle-ai.js';
 import { ReadingView } from './reading-view.js';
 
@@ -45,6 +46,65 @@ export class PhoneView {
             <p class="identity-note">ระบบจะเทียบกับวันเกิดของคุณ (${esc(profile.birthDate)}) ให้ด้วยว่าเบอร์นี้ถูกโฉลกไหม</p>`
             : `<p class="identity-note">ถ้ากรอกวันเกิดที่<a href="#profile" class="notice-link">หน้าโปรไฟล์</a> ระบบจะบอกได้ด้วยว่าเบอร์นี้ถูกโฉลกกับคุณหรือไม่</p>`}
         </section>
+
+        <details class="method-box">
+          <summary>📚 เว็บนี้ใช้ตำราไหน และทำไมเช็คกับเว็บอื่นแล้วได้ไม่ตรงกัน</summary>
+          <div class="method-body">
+            <h4>วิธีที่เว็บนี้ใช้</h4>
+            <p class="method-lead">${esc(METHOD_USED.nameTh)}</p>
+            <p>${esc(METHOD_USED.summaryTh)}</p>
+            <ol class="method-steps">
+              ${METHOD_USED.stepsTh.map(st => `<li>${esc(st)}</li>`).join('')}
+            </ol>
+
+            <h4>สิ่งที่แทบทุกสำนักเห็นตรงกัน</h4>
+            <ul class="method-agree">
+              ${AGREED_POINTS_TH.map(a => `<li>${esc(a)}</li>`).join('')}
+            </ul>
+
+            <h4>จุดที่แต่ละสำนักไม่ตรงกัน</h4>
+            <div class="method-dispute-grid">
+              ${DISPUTED_POINTS.map(d => `
+                <div class="method-dispute">
+                  <b>${esc(d.topicTh)}</b>
+                  <p class="ds-a">สำนักหนึ่ง: ${esc(d.schoolA)}</p>
+                  <p class="ds-b">อีกสำนัก: ${esc(d.schoolB)}</p>
+                  <p class="ds-ours">เว็บนี้: ${esc(d.oursTh)}</p>
+                </div>`).join('')}
+            </div>
+
+            <h4>${esc(BIRTH_LINK_METHOD.titleTh)}</h4>
+            <p>${esc(BIRTH_LINK_METHOD.introTh)}</p>
+            <ol class="method-steps">
+              ${BIRTH_LINK_METHOD.stepsTh.map(st => `
+                <li><b>${esc(st.stepTh)}</b><br><span>${esc(st.detailTh)}</span></li>`).join('')}
+            </ol>
+            <p class="method-warn">${esc(BIRTH_LINK_METHOD.noteTh)}</p>
+
+            <h4>ข้อมูลนี้มาจากไหน</h4>
+            <div class="source-list">
+              ${SOURCES.map(src => `
+                <div class="source-item">
+                  <b>${esc(src.nameTh)}</b>
+                  ${src.viaTh ? `<span class="src-via">${esc(src.viaTh)}</span>` : ''}
+                  ${src.url ? `<a href="${esc(src.url)}" target="_blank" rel="noopener noreferrer">ดูแหล่งที่มา ↗</a>` : ''}
+                  <p><b>ใช้ทำอะไร:</b> ${esc(src.usedForTh)}</p>
+                  <p class="src-cred">${esc(src.credibilityTh)}</p>
+                </div>`).join('')}
+            </div>
+
+            <h4>ส่วนไหนเชื่อได้แค่ไหน</h4>
+            <div class="confidence-list">
+              ${CONFIDENCE_LEVELS.map(c => `
+                <div class="confidence-item tone-${c.toneTh}">
+                  <b>${esc(c.levelTh)}</b>
+                  <ul>${c.itemsTh.map(i => `<li>${esc(i)}</li>`).join('')}</ul>
+                </div>`).join('')}
+            </div>
+
+            <p class="method-honesty">${esc(HONESTY_NOTE_TH)}</p>
+          </div>
+        </details>
 
         <div id="phone-result"></div>
       </div>`;
@@ -105,6 +165,16 @@ export class PhoneView {
           </ul>
         </div>
 
+        <details class="method-box" style="text-align:left;">
+          <summary>🧮 ดูวิธีคำนวณเบอร์นี้ทีละขั้น</summary>
+          <div class="method-body">
+            <ol class="method-steps">
+              ${r.calcStepsTh.map(st => `<li>${esc(st)}</li>`).join('')}
+            </ol>
+            <p class="method-honesty">${esc(HONESTY_NOTE_TH)}</p>
+          </div>
+        </details>
+
         <div class="domain-sections" style="text-align:left;">
           <article class="domain-section">
             <h3>🧮 ผลรวมเบอร์ = ${r.sum}</h3>
@@ -136,6 +206,13 @@ export class PhoneView {
             <h3>🎯 เบอร์นี้ถูกโฉลกกับวันเกิดคุณไหม</h3>
             <p>${esc(ownerMatch.verdictTh)}</p>
             <p style="margin-top:8px;">${esc(ownerMatch.adviceTh)}</p>
+            <details class="method-inline">
+              <summary>ดูว่าคำนวณจากวันเกิดยังไง</summary>
+              <ol class="method-steps">
+                ${BIRTH_LINK_METHOD.stepsTh.map(st => `<li><b>${esc(st.stepTh)}</b><br><span>${esc(st.detailTh)}</span></li>`).join('')}
+              </ol>
+              <p class="method-warn">${esc(BIRTH_LINK_METHOD.noteTh)}</p>
+            </details>
             <div class="source-badge">มาจาก: เลขประจำดาวในผังทักษาปกรณ์ คำนวณจากวันเกิดของคุณ</div>
           </article>` : ''}
 

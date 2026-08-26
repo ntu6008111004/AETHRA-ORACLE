@@ -286,6 +286,22 @@ export class PhoneNumerologyEngine {
       tally,
       score,
       scoreFactors: factors.filter(f => f.points !== 0),
+      // ขั้นตอนการคำนวณจริงของเบอร์นี้ ใช้แสดงให้ผู้ใช้ตรวจสอบได้เอง
+      calcStepsTh: [
+        'เบอร์ที่กรอก: ' + digits + ' (' + digits.length + ' หลัก)',
+        'บวกเลขทุกหลัก: ' + nums.join(' + ') + ' = ' + sum,
+        'ผลรวม ' + sum + ' เทียบตาราง ได้ความหมาย: ' + sumInfo.titleTh,
+        'จับคู่เลขติดกันได้ ' + pairs.length + ' คู่: ' + pairs.map(p => p.text).join(' '),
+        'คู่ที่อยู่กลุ่มดาวดี ' + goodPairs.length + ' คู่'
+          + (goodPairs.length ? ' (' + goodPairs.map(p => p.text).join(' ') + ')' : ''),
+        'คู่ที่อยู่กลุ่มดาวเสีย ' + badPairs.length + ' คู่'
+          + (badPairs.length ? ' (' + badPairs.map(p => p.text).join(' ') + ')' : ''),
+        'คู่ท้ายสุดคือ ' + (lastPair ? lastPair.text + ' อยู่กลุ่ม ' + lastPair.group.nameTh : 'ไม่มี')
+          + ' ให้น้ำหนักพิเศษเพราะตำราถือว่าส่งผลแรงที่สุด',
+        'รวมคะแนน: 60 (ฐานกลาง) '
+          + factors.filter(f => f.points !== 0).map(f => (f.points > 0 ? '+ ' : '- ') + Math.abs(Math.round(f.points))).join(' ')
+          + ' = ' + score + ' คะแนน'
+      ],
       verdictTh,
       digitPlanets: [...new Set(nums)].sort().map(n => ({ digit: n, ...DIGIT_PLANETS[n] })),
       summaryTh: 'เบอร์นี้มีผลรวม ' + sum + ' (' + sumInfo.titleTh + ') '
