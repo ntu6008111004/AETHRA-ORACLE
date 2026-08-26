@@ -11,6 +11,7 @@ import { NumerologyEngine, LIFE_PATH_MEANINGS_TH } from '../js/engines/numerolog
 import { CompatibilityEngine } from '../js/engines/compatibility.js';
 import { UnifiedReadingEngine } from '../js/engines/unified.js';
 import { I18n } from '../js/core/i18n.js';
+import { buildVersionMap, stampHtml } from '../scripts/stamp-version.js';
 import { AstrologyEngine } from '../js/engines/astrology.js';
 import { IChingEngine } from '../js/engines/iching.js';
 import { LifeDomainsEngine } from '../js/engines/life-domains.js';
@@ -220,6 +221,37 @@ export function runCoverageExtraTests(it) {
     const rat = ChineseZodiacEngine.checkChong('1996-08-26', '12:00', 2026);
     assert.strictEqual(rat.isChong, true);
     assert.strictEqual(rat.matched[0].type, 'direct');
+  });
+
+
+  it('ระบบเวอร์ชัน: โค้ดเปลี่ยนแล้วรหัสต้องเปลี่ยน โค้ดเท่าเดิมรหัสต้องเท่าเดิม', () => {
+    const map = buildVersionMap();
+    assert.ok(/^[0-9a-f]{10}$/.test(map.version), 'รหัสต้องเป็นค่าจากเนื้อไฟล์จริง');
+    assert.ok(map.jsFiles.length > 30, 'ต้องเจอไฟล์ js ครบ');
+
+    // คำนวณซ้ำต้องได้รหัสเดิม ไม่งั้นทุกครั้งที่เข้าเว็บจะโหลดใหม่ทั้งหมดโดยไม่จำเป็น
+    assert.strictEqual(buildVersionMap().version, map.version);
+
+    // ไฟล์ js ทุกไฟล์ต้องอยู่ในแผนที่ ไม่งั้นไฟล์ที่ตกหล่นจะยังใช้ของเก่า
+    map.jsFiles.forEach(f => {
+      assert.ok(map.imports['./' + f], 'ขาดแผนของไฟล์ ' + f);
+      assert.ok(map.imports['./' + f].includes('?v=' + map.version));
+    });
+
+    // ประทับซ้ำหลายรอบต้องได้ผลเท่าเดิม ไม่งอกซ้อนกัน
+    const html = '<html><head><link rel="stylesheet" href="./css/index.css"></head>'
+      + '<body><script type="module" src="./js/app.js"></script></body></html>';
+    const once = stampHtml(html, map);
+    const twice = stampHtml(once, map);
+    assert.strictEqual(once, twice, 'ประทับซ้ำต้องได้ผลเหมือนเดิม');
+    assert.ok(once.includes('./css/index.css?v=' + map.version));
+    assert.ok(once.includes('./js/app.js?v=' + map.version));
+    assert.ok(once.includes('type="importmap"'));
+
+    // เวอร์ชันเก่าต้องถูกทับ ไม่ใช่ต่อท้ายซ้อนไปเรื่อย ๆ
+    const stale = stampHtml(once, { version: 'aaaaaaaaaa', imports: {} });
+    assert.ok(stale.includes('./css/index.css?v=aaaaaaaaaa'));
+    assert.ok(!stale.includes('?v=' + map.version));
   });
 
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {

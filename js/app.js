@@ -79,8 +79,32 @@ class AethraApp {
     // แถบแนะนำวิธีรีเฟรชเมื่อหน้าเว็บแสดงผลเพี้ยน
     this.initRefreshTip();
 
+    // ตัวช่วยให้เว็บอัปเดทเองทันทีที่ deploy โดยไม่ต้องกดรีเฟรชแรง
+    this.initAutoUpdate();
+
     // Initial Route Handling
     this.handleRoute();
+  }
+
+  /**
+   * ลงทะเบียนตัวช่วยใน sw.js ที่บังคับให้ดึงไฟล์สดจากเซิร์ฟเวอร์เสมอ
+   * updateViaCache: 'none' สำคัญมาก เพราะสั่งไม่ให้เก็บตัว sw.js เองไว้
+   * ไม่งั้นตัวแก้จะกลายเป็นของเก่าเสียเอง
+   */
+  initAutoUpdate() {
+    if (!('serviceWorker' in navigator)) return;
+    const isSecure = window.location.protocol === 'https:'
+      || window.location.hostname === 'localhost'
+      || window.location.hostname === '127.0.0.1';
+    if (!isSecure) return;
+
+    navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' })
+      .then(reg => {
+        // เช็คของใหม่ทุกครั้งที่กลับมาที่แท็บนี้
+        reg.update().catch(() => {});
+        window.addEventListener('focus', () => reg.update().catch(() => {}));
+      })
+      .catch(() => { /* ถ้าลงทะไม่ได้ เว็บก็ยังใช้งานได้ตามปกติ */ });
   }
 
   initIntroSplash() {

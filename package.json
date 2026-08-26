@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "generate-assets": "node scripts/generate-assets.js",
+    "stamp": "node scripts/stamp-version.js",
     "test": "node tests/test-suite.js",
     "coverage": "c8 --include=js/engines/** --include=js/core/** node tests/test-suite.js"
   },

@@ -64,10 +64,13 @@
   --space-24: 96px;
 
   /* Typography */
-  --font-serif: 'Cinzel', 'Cinzel Decorative', 'Cormorant Garamond', 'Georgia', serif;
-  --font-editorial: 'Cormorant Garamond', 'Georgia', serif;
-  --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --font-thai: 'Sarabun', 'Noto Sans Thai', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  /* Cinzel กับ Cormorant ไม่มีตัวอักษรไทย ถ้าไม่ต่อฟอนต์ไทยไว้
+     ตัวหนังสือไทยจะตกไปใช้ฟอนต์สำรองของเครื่อง ซึ่งแต่ละเครื่องไม่เหมือนกันและมักออกมาไม่สวย */
+  --font-serif: 'Cinzel', 'Cinzel Decorative', 'Noto Serif Thai', 'Sarabun', 'Georgia', serif;
+  --font-editorial: 'Cormorant Garamond', 'Noto Serif Thai', 'Sarabun', 'Georgia', serif;
+  --font-sans: 'Plus Jakarta Sans', 'Noto Sans Thai', 'Sarabun', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-thai: 'Noto Sans Thai', 'Sarabun', 'Plus Jakarta Sans', 'Segoe UI', sans-serif;
+  --font-thai-display: 'Noto Serif Thai', 'Noto Sans Thai', 'Sarabun', serif;
   --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
 
   /* Typography Scale */

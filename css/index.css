@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&family=Cinzel:wght@500;600;700&family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=Noto+Sans+Thai:wght@300;400;500;600;700&family=Noto+Serif+Thai:wght@500;600;700&family=Sarabun:wght@300;400;500;600&display=swap');
 @import url('./tokens.css');
 
 /* ==========================================================================
@@ -85,9 +85,11 @@ h1, h2, h3, .font-serif {
 html:lang(th) h1,
 html:lang(th) h2,
 html:lang(th) h3 {
-  font-family: var(--font-thai);
-  letter-spacing: 0.01em;
-  line-height: 1.4;
+  font-family: var(--font-thai-display);
+  font-weight: 600;
+  letter-spacing: 0;
+  /* ภาษาไทยมีสระบนล่างและวรรณยุกต์ จึงต้องการระยะบรรทัดมากกว่าอังกฤษ */
+  line-height: 1.5;
 }
 
 .font-editorial {
@@ -322,6 +324,14 @@ html:lang(th) h3 {
   padding: calc(var(--safe-top) + var(--space-6)) var(--space-6) calc(var(--safe-bottom) + var(--space-6));
   transform: translateX(100%);
   transition: transform var(--duration-normal) var(--ease-celestial);
+  /* เมนูยาวกว่าจอต้องเลื่อนขึ้นลงได้ */
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.mobile-nav-links {
+  flex-shrink: 0;
 }
 
 .mobile-nav-drawer.is-open {
@@ -335,6 +345,13 @@ html:lang(th) h3 {
   margin-bottom: var(--space-8);
   padding-bottom: var(--space-4);
   border-bottom: var(--border-subtle);
+  /* ตรึงหัวไว้ เลื่อนเมนูลงแล้วปุ่มปิดต้องยังกดได้ */
+  position: sticky;
+  top: calc(var(--safe-top) * -1 - var(--space-6));
+  margin-top: calc(var(--safe-top) * -1 - var(--space-6));
+  padding-top: calc(var(--safe-top) + var(--space-6));
+  background-color: var(--color-obsidian);
+  z-index: 2;
 }
 
 .mobile-nav-links {
@@ -345,8 +362,9 @@ html:lang(th) h3 {
 }
 
 .mobile-nav-link {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-2xl);
+  font-family: var(--font-thai);
+  font-weight: 500;
+  font-size: var(--font-size-lg);
   color: var(--color-text-secondary);
   display: flex;
   align-items: center;
