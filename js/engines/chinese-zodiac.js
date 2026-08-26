@@ -147,7 +147,15 @@ export class ChineseZodiacEngine {
    * หาว่าในปีที่กำหนด นักษัตรใดชงบ้าง
    * @param {number} targetYear ปี ค.ศ. ที่ต้องการตรวจ
    */
-  static getClashYears(targetYear = new Date().getFullYear()) {
+  /**
+   * ปีนักษัตรที่มีผลจริง ณ วันนี้ ตามเกณฑ์ลี่ชุน (ราว 4 ก.พ.)
+   * ช่วง 1 ม.ค. ถึงก่อนลี่ชุน ยังนับเป็นปีนักษัตรเดิม ไม่ใช่เอาเลขปีจากนาฬิกาเครื่องมาใช้ตรง ๆ
+   */
+  static currentZodiacYear(now = new Date()) {
+    return getBaZiYear(now, 7);
+  }
+
+  static getClashYears(targetYear = ChineseZodiacEngine.currentZodiacYear()) {
     const yearBranchIndex = ((targetYear - 4) % 12 + 12) % 12;
     const pick = (offset) => EARTHLY_BRANCHES[(yearBranchIndex + offset) % 12];
 
@@ -180,7 +188,7 @@ export class ChineseZodiacEngine {
   }
 
   /** ตรวจว่าคนคนนี้ชงในปีที่กำหนดหรือไม่ พร้อมคำอธิบายที่ใช้ได้จริง */
-  static checkChong(birthDateStr, birthTimeStr = '12:00', targetYear = new Date().getFullYear(), tzOffsetHours = 7) {
+  static checkChong(birthDateStr, birthTimeStr = '12:00', targetYear = ChineseZodiacEngine.currentZodiacYear(), tzOffsetHours = 7) {
     const me = this.getZodiac(birthDateStr, birthTimeStr, tzOffsetHours);
     const clash = this.getClashYears(targetYear);
 

@@ -197,6 +197,31 @@ export function runCoverageExtraTests(it) {
     assert.strictEqual(result.tarot.length, 3);
   });
 
+
+  it('ปีชงอิงเกณฑ์ลี่ชุน ไม่ใช่ปีปฏิทินจากนาฬิกาเครื่องตรง ๆ', () => {
+    // ต้นมกราคม ก่อนลี่ชุน ยังเป็นปีนักษัตรเดิม
+    assert.strictEqual(
+      ChineseZodiacEngine.currentZodiacYear(new Date('2026-01-15T12:00:00+07:00')), 2025);
+    // หลังลี่ชุน ขึ้นปีใหม่
+    assert.strictEqual(
+      ChineseZodiacEngine.currentZodiacYear(new Date('2026-02-05T12:00:00+07:00')), 2026);
+
+    // ตารางชงปี 2569 (มะเมีย) ต้องตรงตำรา:
+    // ชงตรง ชวด / คัก มะเมีย / เฮ้ง เถาะ / ผั่ว ระกา
+    const c = ChineseZodiacEngine.getClashYears(2026);
+    assert.strictEqual(c.yearBranch.nameTh, 'มะเมีย');
+    assert.strictEqual(c.direct.branch.nameTh, 'ชวด');
+    assert.strictEqual(c.kak.branch.nameTh, 'มะเมีย');
+    assert.strictEqual(c.heng.branch.nameTh, 'เถาะ');
+    assert.strictEqual(c.pua.branch.nameTh, 'ระกา');
+
+    // คนปีขาลปีมะเมียต้องไม่ชง คนปีชวดต้องชงตรง
+    assert.strictEqual(ChineseZodiacEngine.checkChong('1998-08-26', '12:00', 2026).isChong, false);
+    const rat = ChineseZodiacEngine.checkChong('1996-08-26', '12:00', 2026);
+    assert.strictEqual(rat.isChong, true);
+    assert.strictEqual(rat.matched[0].type, 'direct');
+  });
+
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {
     assert.strictEqual(I18n.getLang(), 'th');
     I18n.setLang('en');

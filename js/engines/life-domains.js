@@ -135,7 +135,9 @@ export class LifeDomainsEngine {
     const currentYear = new Date().getFullYear();
     const age = currentYear - Number(birthDate.slice(0, 4));
     const currentLuck = luck.find(l => age >= l.ageFrom && age <= l.ageTo) || luck[0];
-    const chong = ChineseZodiacEngine.checkChong(birthDate, birthTime || '12:00', currentYear);
+    // ปีชงต้องใช้ปีนักษัตรตามเกณฑ์ลี่ชุน ไม่ใช่ปีปฏิทินเครื่องตรง ๆ
+    // (ช่วง 1 ม.ค. - 3 ก.พ. ยังเป็นปีนักษัตรเดิม)
+    const chong = ChineseZodiacEngine.checkChong(birthDate, birthTime || '12:00');
 
     // คะแนนแต่ละด้านคำนวณจากหลายปัจจัยจริง และบอกที่มาได้ทุกคะแนน
     const balance = elementBalance(bazi.elementScores);
