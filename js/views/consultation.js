@@ -6,6 +6,7 @@ import { Storage } from '../core/storage.js';
 import { I18n } from '../core/i18n.js';
 import { SoundManager } from '../core/sound.js';
 import { LifeDomainsEngine } from '../engines/life-domains.js';
+import { buildInstruction, retrieveFacts, detectIntent } from '../services/question-router.js';
 import { OracleAIService } from '../services/oracle-ai.js';
 import { ReadingView } from './reading-view.js';
 
@@ -42,38 +43,18 @@ const TOPIC_DIRECTIVES = {
   spiritual: 'คุณคือที่ปรึกษาด้านการเติบโตภายใน อ้างอิงเลขเส้นทางชีวิต ธาตุเจ้าเรือน และจุดที่ต้องระวังของปีนักษัตร ชวนผู้ใช้ไตร่ตรองมากกว่าฟันธง'
 };
 
-function buildReadingContext(profile) {
+function buildReadingContext(profile, question, previousOpenings) {
   const result = LifeDomainsEngine.analyze(profile);
   if (!result.available) {
-    return 'ผู้ใช้ไม่ทราบวันเกิด ระบบจึงไม่มีผลคำนวณดวงกำเนิด ห้ามเดาราศี ลัคนา ธาตุ หรือเลขศาสตร์ ให้ตอบเป็นคำแนะนำเชิงไตร่ตรองเท่านั้น';
+    return 'ผู้ใช้ยังไม่ได้กรอกวันเกิด ระบบจึงไม่มีผลคำนวณดวงเลย'
+      + ' ให้บอกตรง ๆ ว่ายังดูดวงให้ไม่ได้ และชวนไปกรอกวันเกิดที่หน้าโปรไฟล์'
+      + ' ห้ามเดาราศี ลัคนา ธาตุ หรือเลขศาสตร์เด็ดขาด';
   }
 
-  const { meta } = result;
-  const houses = meta.thai.houses;
-  const lines = [
-    'ชื่อที่ใช้เรียก: ' + (profile.nickname || 'ผู้รับคำอ่าน'),
-    'วันเกิด: ' + meta.taksa.weekdayNameTh + ' ' + profile.birthDate + (meta.hasTime ? ' เวลา ' + profile.birthTime : ' (ไม่ทราบเวลาเกิด)'),
-    'อายุประมาณ: ' + meta.age + ' ปี',
-    'ราศีเกิดแบบสากล: ราศี' + meta.thai.westernSunSign.nameTh + ' / ราศีแบบไทย (นิรายนะ): ราศี' + meta.thai.thaiSunSignNameTh,
-    'ปีนักษัตร: ปี' + meta.zodiac.nameTh + ' (' + meta.zodiac.animalTh + ') — จุดแข็ง: ' + meta.zodiac.profile.strengthTh + ' / ระวัง: ' + meta.zodiac.profile.cautionTh,
-    'ธาตุประจำตัวดวงจีน: ธาตุ' + meta.bazi.dayMasterElement.nameTh + ' (' + meta.bazi.dayMaster.nameTh + ') — ' + meta.bazi.strength.labelTh,
-    'คำอธิบายความแข็งอ่อน: ' + meta.bazi.strength.plainTh,
-    'ธาตุที่ควรเสริม: ธาตุ' + meta.bazi.favourableElementsTh.join(' และธาตุ'),
-    'ธาตุเจ้าเรือนแพทย์แผนไทย: ' + meta.thai.bodyElement.nameTh + ' — ' + meta.thai.bodyElement.natureTh,
-    'เลขเส้นทางชีวิต: ' + meta.numerology.lifePath + ' (' + meta.numerology.meaningTh.title + ')',
-    'เลขจังหวะชีวิตปีนี้: ' + meta.numerology.personalYear,
-    'รอบโชคชะตา 10 ปีปัจจุบัน (ต้าอวิ้น): ' + meta.currentLuck.nameTh + ' อายุ ' + meta.currentLuck.ageFrom + '-' + meta.currentLuck.ageTo + ' ปี — ' + meta.currentLuck.verdictTh,
-    'สถานะปีชงปีนี้: ' + (meta.chong.isChong ? meta.chong.matched[0].labelTh : 'ไม่ชง'),
-    'สีมงคลจากทักษา: สีเดช(งาน)=' + meta.taksa.byId.dech.colorName + ' / สีศรี(เสน่ห์)=' + meta.taksa.byId.si.colorName + ' / สีมูละ(ทรัพย์)=' + meta.taksa.byId.mula.colorName + ' / สีกาลกิณี(เลี่ยง)=' + meta.taksa.byId.kalakini.colorName,
-    houses.available
-      ? 'ลัคนา: ราศี' + houses.ascendantNameTh
-        + ' / ภพการเงิน(2): ราศี' + houses.byNumber[2].signNameTh
-        + ' / ภพคู่ครอง(7): ราศี' + houses.byNumber[7].signNameTh
-        + ' / ภพการงาน(10): ราศี' + houses.byNumber[10].signNameTh
-        + ' / ภพลาภ(11): ราศี' + houses.byNumber[11].signNameTh
-      : 'ไม่มีลัคนาและภพ 12 เพราะไม่ทราบเวลาเกิด — ห้ามเดาลัคนาหรือภพเด็ดขาด'
-  ];
-  return lines.join(String.fromCharCode(10));
+  const { intent, instructionTh } = buildInstruction(question, previousOpenings);
+  const facts = retrieveFacts(result.meta, result.domains, intent.id);
+
+  return [instructionTh, '', '[ข้อมูลดวงที่ระบบคำนวณไว้แล้ว ใช้ตอบคำถามนี้]', facts].join(String.fromCharCode(10));
 }
 
 
@@ -155,7 +136,6 @@ export class ConsultationView {
     const statusText = container.querySelector('#consultation-ai-status');
     const statusDot = container.querySelector('#consultation-ai-dot');
     const profile = Storage.getProfile();
-    const readingContext = buildReadingContext(profile);
     let currentTopic = 'general';
     let isSending = false;
 
@@ -217,16 +197,27 @@ export class ConsultationView {
       input.value = '';
       renderMessages('กำลังรวบรวมดวงชะตาและเรียบเรียงคำทำนายให้คุณ…');
 
-      const history = Storage.getConsultationMessages(currentTopic).map(message => ({
+      const stored = Storage.getConsultationMessages(currentTopic);
+      const history = stored.map(message => ({
         role: message.role === 'oracle' ? 'assistant' : 'user',
         content: message.text
       }));
+
+      // ประโยคเปิดของคำตอบก่อนหน้า ใช้สั่งโมเดลไม่ให้ตอบซ้ำ
+      const previousOpenings = stored
+        .filter(m => m.role === 'oracle' && !m.isError)
+        .slice(-2)
+        .map(m => String(m.text || '').replace(/[#*\-]/g, '').trim().slice(0, 60));
+
       const topicName = TOPICS.find(topic => topic.id === currentTopic)?.nameTh || currentTopic;
+      const context = buildReadingContext(profile, text, previousOpenings)
+        + String.fromCharCode(10) + String.fromCharCode(10)
+        + 'ห้องสนทนาที่ผู้ใช้เลือก: ' + topicName
+        + String.fromCharCode(10) + 'บทบาทของคุณ: ' + (TOPIC_DIRECTIVES[currentTopic] || TOPIC_DIRECTIVES.general);
+
       const result = await OracleAIService.sendChat(history, {
-        purpose: `consultation:${currentTopic}`,
-        context: `${readingContext}\nหัวข้อห้องสนทนา: ${topicName}
-บทบาทของคุณ: ${TOPIC_DIRECTIVES[currentTopic] || TOPIC_DIRECTIVES.general}
-นี่คือบทสนทนาต่อเนื่อง ให้จำและอ้างอิงสิ่งที่คุยกันก่อนหน้าในห้องนี้ด้วย`
+        purpose: 'consultation:' + currentTopic + ':' + detectIntent(text).id,
+        context
       });
 
       Storage.saveConsultationMessage(currentTopic, {

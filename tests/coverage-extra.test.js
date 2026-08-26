@@ -13,6 +13,8 @@ import { UnifiedReadingEngine } from '../js/engines/unified.js';
 import { I18n } from '../js/core/i18n.js';
 import { AstrologyEngine } from '../js/engines/astrology.js';
 import { IChingEngine } from '../js/engines/iching.js';
+import { LifeDomainsEngine } from '../js/engines/life-domains.js';
+import { detectIntent, detectShape, retrieveFacts, buildInstruction, INTENTS, QUESTION_SHAPES } from '../js/services/question-router.js';
 
 /** AudioContext จำลองสำหรับรันโค้ดสังเคราะห์เสียงใน Node */
 function createFakeAudioContext() {
@@ -270,5 +272,79 @@ export function runCoverageExtraTests(it) {
     assert.strictEqual(Storage.getConsultationMessages('_clearA').length, 0);
     assert.strictEqual(Storage.getConsultationMessages('_clearB').length, 1);
     Storage.clearConsultationMessages('_clearB');
+  });
+
+  console.log('\n--- SECTION 27: ตัวอ่านคำถาม แก้ปัญหาตอบซ้ำ (Question Router) ---');
+
+  it('จับหมวดคำถามได้ถูกต้องทุกหมวด', () => {
+    assert.strictEqual(detectIntent('ถ้าหาคู่แท้ผมต้องหาคนแบบไหน').id, 'love');
+    assert.strictEqual(detectIntent('ควรลาออกไปทำธุรกิจไหม').id, 'career');
+    assert.strictEqual(detectIntent('การเงินผมปีนี้เป็นยังไง').id, 'money');
+    assert.strictEqual(detectIntent('สุขภาพต้องระวังอะไร').id, 'health');
+    assert.strictEqual(detectIntent('ปีนี้ชงไหม แก้ชงยังไง').id, 'luck');
+    assert.strictEqual(detectIntent('ดวงลูกเป็นยังไง จะได้บ้านไหม').id, 'family');
+    assert.strictEqual(detectIntent('จะสอบติดไหม').id, 'study');
+    assert.strictEqual(detectIntent('สวัสดีครับ').id, 'general');
+    assert.strictEqual(INTENTS.length, 7);
+  });
+
+  it('จับชนิดคำถามเพื่อเลือกรูปแบบคำตอบได้', () => {
+    assert.strictEqual(detectShape('ควรลาออกไหม').id, 'yesno');
+    assert.strictEqual(detectShape('จะได้แต่งงานเมื่อไหร่').id, 'when');
+    assert.strictEqual(detectShape('ต้องแก้ชงยังไง').id, 'how');
+    assert.strictEqual(detectShape('เนื้อคู่เป็นคนแบบไหน').id, 'what');
+    assert.strictEqual(detectShape('เล่าให้ฟังหน่อย').id, 'general');
+    Object.values(QUESTION_SHAPES).forEach(shape => {
+      assert.ok(shape.instructionTh.length > 40, 'ทุกรูปแบบต้องมีคำสั่งที่ชัดเจน');
+    });
+  });
+
+  it('คำถามต่างหมวดต้องดึงข้อมูลคนละชุด ไม่ปนกัน', () => {
+    const profile = {
+      birthDate: '1996-08-26', birthTime: '09:30', lat: 13.7563, lon: 100.5018,
+      gender: 'yang', name: 'สมชาย', nickname: 'ชาย'
+    };
+    const result = LifeDomainsEngine.analyze(profile);
+    const ids = ['love', 'career', 'money', 'health', 'luck', 'family', 'study', 'general'];
+    const contexts = ids.map(id => retrieveFacts(result.meta, result.domains, id));
+
+    // ทุกบริบทต้องไม่ซ้ำกันเลย นี่คือหัวใจของการแก้ปัญหาตอบซ้ำ
+    assert.strictEqual(new Set(contexts).size, ids.length, 'บริบทของแต่ละหมวดต้องต่างกันทั้งหมด');
+
+    const love = retrieveFacts(result.meta, result.domains, 'love');
+    const money = retrieveFacts(result.meta, result.domains, 'money');
+    const health = retrieveFacts(result.meta, result.domains, 'health');
+
+    assert.ok(love.includes('ภพคู่ครอง'), 'บริบทความรักต้องมีภพคู่ครอง');
+    assert.ok(!love.includes('ภพการเงิน'), 'บริบทความรักต้องไม่มีภพการเงินปน');
+    assert.ok(money.includes('ภพการเงิน'), 'บริบทการเงินต้องมีภพการเงิน');
+    assert.ok(!money.includes('ภพคู่ครอง'), 'บริบทการเงินต้องไม่มีภพคู่ครองปน');
+    assert.ok(health.includes('ห้ามวินิจฉัยโรค'), 'บริบทสุขภาพต้องมีข้อห้ามวินิจฉัยโรค');
+  });
+
+  it('ไม่ทราบเวลาเกิดต้องเตือนห้ามเดาลัคนา และไม่มีภพในบริบท', () => {
+    const noTime = LifeDomainsEngine.analyze({ birthDate: '1996-08-26', name: 'ทดสอบ' });
+    const ctx = retrieveFacts(noTime.meta, noTime.domains, 'love');
+    assert.ok(ctx.includes('ห้ามเดาลัคนา'), 'ต้องเตือนโมเดลห้ามเดา');
+    assert.ok(ctx.includes('ไม่ทราบเวลาเกิด'));
+  });
+
+  it('คำสั่งบังคับตอบตรงคำถาม ห้ามอังกฤษในวงเล็บ ห้ามคำกวี', () => {
+    const { instructionTh, intent, shape } = buildInstruction('ควรลาออกไปทำธุรกิจไหม');
+    assert.strictEqual(intent.id, 'career');
+    assert.strictEqual(shape.id, 'yesno');
+    assert.ok(instructionTh.includes('ตอบเฉพาะคำถามข้างบนเท่านั้น'));
+    assert.ok(instructionTh.includes('ห้ามสรุปดวงทั้งหมดซ้ำ'));
+    assert.ok(instructionTh.includes('(Leo)'), 'ต้องยกตัวอย่างคำอังกฤษที่ห้ามใช้');
+    assert.ok(instructionTh.includes('ห้ามใช้คำเชิงกวี'));
+    assert.ok(instructionTh.includes('หนึ่งบรรทัดต่อหนึ่งเรื่อง'));
+    assert.ok(instructionTh.includes('ควรลาออกไปทำธุรกิจไหม'), 'ต้องย้ำคำถามเดิมให้โมเดลเห็นชัด');
+  });
+
+  it('ส่งประโยคเปิดเดิมไปแล้วต้องมีคำสั่งห้ามตอบซ้ำ', () => {
+    const withPrev = buildInstruction('การเงินเป็นยังไง', ['วงจรชีวิตของคุณถูกขับเคลื่อนด้วยธาตุไม้']);
+    assert.ok(withPrev.instructionTh.includes('ห้ามขึ้นต้นคำตอบซ้ำ'));
+    const withoutPrev = buildInstruction('การเงินเป็นยังไง');
+    assert.ok(!withoutPrev.instructionTh.includes('ห้ามขึ้นต้นคำตอบซ้ำ'));
   });
 }
