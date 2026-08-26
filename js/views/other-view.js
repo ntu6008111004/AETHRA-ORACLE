@@ -275,14 +275,18 @@ export class OtherView {
           </article>
           ${phoneResult?.available ? `
           <article class="domain-section">
-            <h3>ตรวจเบอร์ ${esc(phoneResult.formatted)} — ได้ ${phoneResult.score} คะแนน</h3>
+            <h3>ตรวจเบอร์ ${esc(phoneResult.formatted)} — ${esc(phoneResult.gradeTh)}</h3>
             <p>${esc(phoneResult.summaryTh)}</p>
             <div class="pair-grid" style="margin-top:var(--space-3);">
-              ${phoneResult.pairs.map(p => `
-                <div class="pair-chip tone-${p.group.tone}${p.isLast ? ' is-last' : ''}">
+              ${phoneResult.pairs.map(p => {
+                const toneClass = p.mainstream.tone === 'ดี' ? 'tone-great'
+                  : p.mainstream.tone === 'เสีย' ? 'tone-bad' : 'tone-neutral';
+                return `
+                <div class="pair-chip ${toneClass}${p.isLast ? ' is-last' : ''}">
                   <span class="pair-num">${esc(p.text)}</span>
-                  <span class="pair-info"><b>${p.group.emoji} ${esc(p.group.nameTh)}</b><small>${esc(p.group.shortTh)}</small></span>
-                </div>`).join('')}
+                  <span class="pair-info"><b>${p.mainstream.tone === 'ดี' ? '✅' : p.mainstream.tone === 'เสีย' ? '⚠️' : '⚪'} ${esc(p.mainstream.tone)}</b><small>${esc(p.mainstream.m)}</small></span>
+                </div>`;
+              }).join('')}
             </div>
             ${phoneMatch ? `<p style="margin-top:var(--space-3);">${esc(phoneMatch.verdictTh)}</p>` : ''}
             <div class="source-badge">มาจาก: ผลรวมเบอร์และคู่เลขตามตำราเลขศาสตร์ไทย</div>
@@ -348,7 +352,7 @@ export class OtherView {
           + ' รัก ' + reading.domains.love.score + ' สุขภาพ ' + reading.domains.health.score
           + ' โชค ' + reading.domains.luck.score,
         phoneResult?.available
-          ? 'เบอร์โทรได้ ' + phoneResult.score + ' คะแนน ผลรวม ' + phoneResult.sum + ' — ' + phoneResult.sumInfo.titleTh
+          ? 'เบอร์โทรสรุปตามตารางเบอร์มงคล: ' + phoneResult.gradeTh + ' (ผลรวม ' + phoneResult.sum + ' — ' + phoneResult.sumInfo.titleTh + ')'
           : 'ไม่ทราบเบอร์โทร',
         compat ? 'เทียบกับผู้ถาม: ' + compat.branchRelation.labelTh + ' และธาตุ ' + compat.elementRelation.labelTh : '',
         '',

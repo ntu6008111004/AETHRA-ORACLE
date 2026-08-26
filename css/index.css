@@ -1972,3 +1972,20 @@ html:lang(th) h3 {
 .disagree-item .ds-main { color: var(--color-text-primary); }
 .disagree-item .ds-main b { color: #68D391; }
 .disagree-item .ds-alt { color: var(--color-text-muted); }
+
+
+/* --- สรุปเฉพาะตัว ใช้ต่อหรือเปลี่ยน --- */
+.personal-verdict {
+  text-align: left; border-radius: 12px; padding: var(--space-4) var(--space-5);
+  margin-bottom: var(--space-5); border: 1px solid;
+}
+.personal-verdict.pv-keep { background: rgba(72,187,120,0.1); border-color: rgba(72,187,120,0.45); }
+.personal-verdict.pv-keep-note { background: rgba(72,187,120,0.07); border-color: rgba(72,187,120,0.3); }
+.personal-verdict.pv-neutral { background: rgba(197,160,89,0.08); border-color: rgba(197,160,89,0.35); }
+.personal-verdict.pv-change-optional { background: rgba(236,201,75,0.08); border-color: rgba(236,201,75,0.4); }
+.personal-verdict.pv-change { background: rgba(229,62,62,0.08); border-color: rgba(229,62,62,0.4); }
+.pv-title { font-size: var(--font-size-base); font-weight: 700; color: var(--color-text-primary); margin-bottom: 4px; }
+.personal-verdict.pv-keep .pv-title, .personal-verdict.pv-keep-note .pv-title { color: #68D391; }
+.personal-verdict.pv-change .pv-title { color: #FC8181; }
+.personal-verdict.pv-change-optional .pv-title { color: #ECC94B; }
+.personal-verdict p { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.75; }

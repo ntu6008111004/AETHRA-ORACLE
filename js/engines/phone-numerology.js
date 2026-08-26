@@ -368,7 +368,54 @@ export class PhoneNumerologyEngine {
     const goodCount = nums.filter(n => goodNums.includes(n)).length;
     const badCount = nums.filter(n => n === badNum).length;
 
+    // สรุปเฉพาะตัว: รวมผลตารางเบอร์มงคล (grade) กับความถูกโฉลกตามวันเกิด
+    // เพื่อตอบคำถามเดียวที่ผู้ใช้อยากรู้จริง คือ ใช้ต่อได้ไหม หรือควรเปลี่ยน
+    const grade = phoneResult.grade;
+    const gradeGood = grade === 'great' || grade === 'good';
+    const gradeBad = grade === 'careful' || grade === 'avoid';
+
+    let decision;
+    let decisionTh;
+    let decisionDetailTh;
+
+    if (gradeGood && badCount === 0) {
+      decision = 'keep';
+      decisionTh = 'เบอร์นี้ดีอยู่แล้ว ใช้ต่อได้เลย';
+      decisionDetailTh = 'ตารางเบอร์มงคลสรุปว่า' + phoneResult.gradeTh
+        + ' และไม่มีเลข ' + badNum + ' ซึ่งเป็นเลขกาลกิณีตามวันเกิดคุณเลย'
+        + ' ถือว่าถูกโฉลกทั้งสองทาง ไม่มีเหตุผลต้องเปลี่ยน';
+    } else if (gradeGood && badCount > 0) {
+      decision = 'keep-note';
+      decisionTh = 'ใช้ต่อได้ ไม่ต้องรีบเปลี่ยน';
+      decisionDetailTh = 'ตารางเบอร์มงคลสรุปว่า' + phoneResult.gradeTh
+        + ' แม้จะมีเลข ' + badNum + ' (เลขกาลกิณีตามวันเกิดคุณ) ปนอยู่ ' + badCount + ' ตัว'
+        + ' แต่ภาพรวมของเบอร์ยังดี ถ้าวันหลังจะเลือกเบอร์ใหม่ค่อยเลี่ยงเลขนี้ก็พอ';
+    } else if (gradeBad && badCount > 0) {
+      decision = 'change';
+      decisionTh = 'ถ้าสะดวก แนะนำให้พิจารณาเปลี่ยน';
+      decisionDetailTh = 'เบอร์นี้เสียสองต่อ คือตารางเบอร์มงคลสรุปว่า' + phoneResult.gradeTh
+        + ' และยังมีเลข ' + badNum + ' (เลขกาลกิณีตามวันเกิดคุณ) ปนอยู่ ' + badCount + ' ตัว'
+        + ' ถ้าจะเปลี่ยน ให้เลือกเบอร์ที่มีคู่ดีเยอะ คู่ท้ายเป็นคู่ดี'
+        + ' มีเลข ' + goodNums.join(' ') + ' มาก และไม่มีเลข ' + badNum;
+    } else if (gradeBad) {
+      decision = 'change-optional';
+      decisionTh = 'เปลี่ยนได้ก็ดี แต่ไม่บังคับ';
+      decisionDetailTh = 'ตารางเบอร์มงคลสรุปว่า' + phoneResult.gradeTh
+        + ' แต่เลขในเบอร์ไม่ขัดกับวันเกิดคุณ (ไม่มีเลขกาลกิณีปน)'
+        + ' ถ้าสะดวกจะเปลี่ยนให้เลือกเบอร์ที่คู่ท้ายเป็นคู่ดี ถ้าไม่สะดวกก็ใช้ต่อได้';
+    } else {
+      decision = 'neutral';
+      decisionTh = 'ใช้ต่อได้ เปลี่ยนหรือไม่แล้วแต่ความสบายใจ';
+      decisionDetailTh = 'เบอร์นี้กลาง ๆ ตามตาราง'
+        + (badCount > 0
+          ? ' และมีเลข ' + badNum + ' ปนอยู่ ' + badCount + ' ตัว ถ้าอยากอัปเกรดค่อยเลือกเบอร์ที่เลี่ยงเลขนี้'
+          : ' และไม่มีเลขที่ขัดกับวันเกิดคุณ ใช้ต่อได้สบายใจ');
+    }
+
     return {
+      decision,
+      decisionTh,
+      decisionDetailTh,
       goodNumbers: goodNums,
       badNumber: badNum,
       goodCount,

@@ -144,7 +144,7 @@ export class PhoneView {
 
       box.innerHTML = this.renderResult(result, ownerMatch);
       box.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      Storage.addReadingToHistory({ type: 'Phone', phone: result.formatted, score: result.score });
+      Storage.addReadingToHistory({ type: 'Phone', phone: result.formatted, grade: result.gradeTh });
       this.bindResultEvents(box, result, ownerMatch);
     });
   }
@@ -158,6 +158,18 @@ export class PhoneView {
         </div>
         <h2 class="match-headline">${esc(r.formatted)}</h2>
         <p class="grade-reason">${esc(r.gradeReasonTh)}</p>
+
+        ${ownerMatch ? `
+        <div class="personal-verdict pv-${ownerMatch.decision}">
+          <div class="pv-title">🎯 สรุปสำหรับคุณ: ${esc(ownerMatch.decisionTh)}</div>
+          <p>${esc(ownerMatch.decisionDetailTh)}</p>
+          <div class="source-badge">รวมผลจากตารางเบอร์มงคล และเลขกาลกิณีตามวันเกิดของคุณ</div>
+        </div>` : `
+        <div class="notice-card is-info" style="text-align:left;">
+          <span class="notice-icon">💡</span>
+          <div><p>กรอกวันเกิดที่<a href="#profile" class="notice-link">หน้าโปรไฟล์</a>
+          แล้วระบบจะสรุปให้เลยว่าเบอร์นี้ดีอยู่แล้วสำหรับคุณ หรือควรพิจารณาเปลี่ยน</p></div>
+        </div>`}
 
         <div class="score-breakdown" style="text-align:left;">
           <h4>เกณฑ์การตัดสิน (เปิดเผยทั้งหมด ไม่มีสูตรลับ)</h4>
@@ -350,20 +362,39 @@ export class PhoneView {
       answer.hidden = false;
       answer.innerHTML = '<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span> กำลังอ่านเลขในเบอร์ของคุณ…</div>';
 
+      const lastP = r.pairs[r.pairs.length - 1];
       const context = [
-        'ผลวิเคราะห์เบอร์โทรตามเลขศาสตร์ไทยที่ระบบคำนวณแล้ว:',
+        'ผลวิเคราะห์เบอร์ตามตารางเบอร์มงคล (สายตำรา อ.พลูหลวง) ที่ระบบสรุปแล้ว:',
         'เบอร์: ' + r.formatted,
-        'ผลรวมทุกหลัก: ' + r.sum + ' (' + r.sumInfo.titleTh + ' — ' + r.sumInfo.descTh + ')',
-        'สรุปตามตาราง: ' + r.gradeTh + ' เพราะ ' + r.gradeReasonTh,
-        'คู่เลขทั้งหมด: ' + r.pairs.map(p => p.text + '=' + p.group.nameTh).join(', '),
-        'คู่ท้ายสุด (สำคัญที่สุด): ' + r.pairs[r.pairs.length - 1].text + ' อยู่กลุ่ม ' + r.pairs[r.pairs.length - 1].group.nameTh,
+        '',
+        '[ข้อสรุปของระบบ ห้ามตอบสวนทางกับข้อนี้]',
+        'ระดับ: ' + r.gradeTh,
+        'เหตุผล: ' + r.gradeReasonTh,
+        r.supports.length ? 'ส่งเสริมด้าน: ' + r.supports.map(t => t.labelTh + ' (' + t.count + ' คู่)').join(', ') : '',
+        '',
+        '[คู่เลขทั้งหมด อ่านตามสายเบอร์มงคล]',
+        ...r.pairs.map(p => p.text + ' = ' + p.mainstream.tone + ' (' + p.mainstream.m + ')'
+          + (p.isLast ? ' <- คู่ท้าย สำคัญที่สุด' : '')),
+        '',
+        'ผลรวมทุกหลัก: ' + r.sum + ' (' + r.sumInfo.titleTh + ')',
+        'คู่ดี ' + r.goodPairs.length + ' คู่ / กลาง ' + r.mixedPairs.length + ' คู่ / เสีย ' + r.badPairs.length + ' คู่',
+        r.disagreedPairs.length
+          ? 'หมายเหตุ: คู่ ' + r.disagreedPairs.map(p => p.text).join(' ')
+            + ' มีตำราอีกสาย (สายกลุ่มดาว) อ่านต่างออกไป แต่ให้ยึดสายเบอร์มงคลข้างบนเป็นหลัก'
+          : '',
         ownerMatch ? 'เทียบกับวันเกิดเจ้าของ: ' + ownerMatch.verdictTh : 'ไม่ทราบวันเกิดเจ้าของ ห้ามเดา',
+        ownerMatch ? 'ข้อสรุปเฉพาะตัวของระบบ (ยึดตามนี้): ' + ownerMatch.decisionTh + ' — ' + ownerMatch.decisionDetailTh : '',
+        '',
+        'กติกาการตอบ: ยึดระดับและเหตุผลของระบบข้างบนเท่านั้น'
+          + ' ถ้าระบบสรุปว่าส่งเสริมดี ห้ามแนะนำให้เปลี่ยนเบอร์'
+          + ' ถ้าระบบสรุปว่าควรระวังหรือให้เลี่ยง จึงค่อยแนะนำเรื่องการเปลี่ยนเบอร์ได้'
+          + ' ห้ามใช้คำว่าดาวมรณะหรือกาลกิณีกับคู่ที่สายเบอร์มงคลอ่านว่าดี',
         '',
         'สิ่งที่ผู้ใช้ถาม: ' + q
-      ].join(String.fromCharCode(10));
+      ].filter(Boolean).join(String.fromCharCode(10));
 
       const res = await OracleAIService.sendChat(
-        [{ role: 'user', content: q + ' — ตอบโดยอ้างผลคู่เลขที่ให้มาเท่านั้น และบอกด้วยว่าควรเปลี่ยนเบอร์หรือไม่ เพราะอะไร' }],
+        [{ role: 'user', content: q + ' — ตอบโดยอ้างผลคู่เลขสายเบอร์มงคลที่ให้มาเท่านั้น และสอดคล้องกับข้อสรุปของระบบ' }],
         {
           purpose: 'phone:analysis',
           context,

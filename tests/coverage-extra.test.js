@@ -727,6 +727,36 @@ export function runCoverageExtraTests(it) {
       'เลขกาลกิณีต้องไม่อยู่ในรายการเลขมงคล');
   });
 
+
+  it('สรุปเฉพาะตัวต้องรวมทั้งตารางเบอร์และวันเกิด และแนะนำสมเหตุสมผล', () => {
+    const taksa = TaksaEngine.calculate('1996-08-26'); // วันจันทร์ กาลกิณีคือเลข 1
+    const check = (phone) => {
+      const r = PhoneNumerologyEngine.analyze(phone);
+      return { r, m: PhoneNumerologyEngine.matchWithOwner(taksa, r, PLANET_NUMBERS) };
+    };
+
+    // ดีทั้งสองทาง -> ใช้ต่อ
+    const keep = check('0899999999');
+    assert.strictEqual(keep.m.decision, 'keep');
+    assert.ok(keep.m.decisionTh.includes('ใช้ต่อ'));
+
+    // ตารางดีแต่มีเลขกาลกิณีปน -> ไม่ต้องรีบเปลี่ยน
+    const keepNote = check('0826197995');
+    assert.strictEqual(keepNote.m.decision, 'keep-note');
+    assert.ok(keepNote.m.decisionDetailTh.includes('เลข 1'));
+
+    // เสียสองต่อ -> แนะนำเปลี่ยน พร้อมบอกเลขที่ควรมีและควรเลี่ยง
+    const change = check('0813133711');
+    assert.strictEqual(change.m.decision, 'change');
+    assert.ok(change.m.decisionDetailTh.includes('เสียสองต่อ'));
+    assert.ok(change.m.decisionDetailTh.includes(change.m.goodNumbers.join(' ')));
+
+    // ทุกแบบต้องมีคำอธิบายยาวพอ ไม่ใช่คำสั่งห้วน ๆ
+    [keep, keepNote, change].forEach(({ m }) => {
+      assert.ok(m.decisionDetailTh.length > 60, 'คำอธิบายต้องละเอียดพอ');
+    });
+  });
+
   it('คู่ที่มีเลขศูนย์ต้องบอกตรง ๆ ว่าพลังอ่อน ไม่แต่งความหมายขึ้นเอง', () => {
     const res = PhoneNumerologyEngine.lookupPair(3);
     assert.strictEqual(res.isNeutral, true);
