@@ -188,19 +188,18 @@ async function runTests() {
 
   console.log('\n--- SECTION 4: Localization (I18n) Engine ---');
 
-  it('Translates keys accurately in Thai and English', () => {
-    I18n.setLang('th');
+  it('Site is locked to Thai and translates keys in Thai', () => {
     assert.strictEqual(I18n.getLang(), 'th');
     assert.strictEqual(I18n.t('brand_name'), 'AETHRA ORACLE');
     assert.strictEqual(I18n.t('brand_short'), 'เอธรา');
 
+    // กดสลับภาษาไม่ได้แล้ว เว็บเป็นไทยล้วน
     I18n.setLang('en');
-    assert.strictEqual(I18n.getLang(), 'en');
-    assert.strictEqual(I18n.t('brand_short'), 'AETHRA');
-    assert.strictEqual(I18n.t('tagline'), 'Many traditions. One personal reading.');
+    assert.strictEqual(I18n.getLang(), 'th');
+    assert.strictEqual(I18n.t('brand_short'), 'เอธรา');
   });
 
-  it('Falls back to English or original key if translation is missing', () => {
+  it('Falls back to original key if translation is missing', () => {
     assert.strictEqual(I18n.t('non_existent_key_xyz'), 'non_existent_key_xyz');
   });
 

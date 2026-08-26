@@ -272,33 +272,25 @@ export const DEFAULT_LANGUAGE = 'th';
 
 class I18nManager {
   constructor() {
-    const savedLanguage = typeof localStorage !== 'undefined' ? localStorage.getItem('aethra_lang') : null;
-    this.currentLang = translations[savedLanguage] ? savedLanguage : DEFAULT_LANGUAGE;
+    // เว็บนี้เป็นภาษาไทยล้วน เพราะคำทำนายทั้งหมดเขียนเป็นไทย
+    // ล้างค่าภาษาเก่าที่ค้างอยู่ กันคนที่เคยกด EN ไว้ค้างโหมดครึ่ง ๆ กลาง ๆ
+    this.currentLang = DEFAULT_LANGUAGE;
+    if (typeof localStorage !== 'undefined') {
+      try { localStorage.removeItem('aethra_lang'); } catch (e) { /* ไม่เป็นไร */ }
+    }
   }
 
   getLang() {
     return this.currentLang;
   }
 
-  setLang(lang) {
-    if (translations[lang]) {
-      this.currentLang = lang;
-      if (typeof localStorage !== 'undefined') {
-        localStorage.setItem('aethra_lang', lang);
-      }
-      if (typeof document !== 'undefined') {
-        document.documentElement.lang = lang;
-        this.applyTranslations();
-      }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('aethra:lang-changed', { detail: { lang } }));
-      }
-    }
+  setLang() {
+    // คงไว้กันโค้ดเก่าเรียกแล้วพัง แต่ไม่เปลี่ยนภาษาอีกแล้ว
+    this.currentLang = DEFAULT_LANGUAGE;
   }
 
   t(key) {
-    const dict = translations[this.currentLang] || translations.en;
-    return dict[key] || translations.en[key] || key;
+    return translations.th[key] || key;
   }
 
   applyTranslations() {

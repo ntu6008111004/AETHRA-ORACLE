@@ -54,11 +54,6 @@ class AethraApp {
 
     // 4. Initialize Router & Events
     window.addEventListener('hashchange', () => this.handleRoute());
-    window.addEventListener('aethra:lang-changed', () => {
-      this.handleRoute();
-      I18n.applyTranslations();
-    });
-
     window.addEventListener('aethra:onboarding-complete', () => {
       this.handleRoute();
     });

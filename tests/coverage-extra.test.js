@@ -197,15 +197,13 @@ export function runCoverageExtraTests(it) {
     assert.strictEqual(result.tarot.length, 3);
   });
 
-  it('I18n: สลับภาษาไปกลับและคีย์แปลหลักมีครบสองภาษา', () => {
-    I18n.setLang('th');
-    const thai = I18n.t('nav_home');
+  it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {
+    assert.strictEqual(I18n.getLang(), 'th');
     I18n.setLang('en');
-    const english = I18n.t('nav_home');
-    assert.notStrictEqual(thai, english);
-    I18n.setLang('ภาษาที่ไม่มี');
-    assert.ok(['th', 'en'].includes(I18n.getLang()), 'ภาษาแปลกต้องไม่ทำระบบพัง');
-    I18n.setLang('th');
+    assert.strictEqual(I18n.getLang(), 'th', 'ต้องไม่สลับไปภาษาอื่นแล้ว');
+    const home = I18n.t('nav_home');
+    assert.ok(/[฀-๿]/.test(home), 'คีย์แปลต้องคืนค่าเป็นภาษาไทย');
+    assert.strictEqual(I18n.t('คีย์ที่ไม่มีจริง'), 'คีย์ที่ไม่มีจริง', 'คีย์ที่ไม่มีต้องไม่ทำระบบพัง');
   });
 
   it('โหราศาสตร์: วันข้ามราศีและปีอธิกสุรทินคำนวณได้', () => {
