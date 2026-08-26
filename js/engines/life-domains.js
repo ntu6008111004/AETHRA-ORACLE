@@ -19,6 +19,8 @@ import { ChineseZodiacEngine } from './chinese-zodiac.js';
 import { ThaiAstrologyEngine } from './thai-astrology.js';
 import { CompatibilityEngine } from './compatibility.js';
 import { NumerologyEngine } from './numerology.js';
+import { BY_DAY_MASTER, BY_LIFE_PATH, BY_PERSONAL_YEAR, BY_BODY_ELEMENT } from '../data/domain-facets.js';
+import { TAKSA_DETAIL_TH } from '../data/taksa-detail.js';
 
 /** การจับคู่ธาตุกับทิศตามตำราจีน (ใช้หาทิศมงคล) */
 export const ELEMENT_DIRECTIONS = {
@@ -45,6 +47,56 @@ function collectGods(bazi) {
     has: (...names) => names.some(n => keys.includes(n)),
     count: (name) => keys.filter(k => k === name).length,
     keys
+  };
+}
+
+/**
+ * ดึงข้อความจากฐานข้อมูลแบบปลอดภัย
+ * ถ้าไม่มีคีย์นั้น หรือช่องนั้นว่าง จะคืนค่าว่าง เพื่อให้ข้ามหัวข้อนั้นไปเงียบ ๆ
+ * ไม่แสดงคำว่าไม่มีข้อมูล และไม่ทำให้ระบบพัง
+ */
+function facet(table, key, field) {
+  if (!table || key === undefined || key === null || key === '') return '';
+  const row = table[key];
+  if (!row || typeof row !== 'object') return '';
+  const text = row[field];
+  return typeof text === 'string' && text.trim().length > 0 ? text.trim() : '';
+}
+
+/** สร้างหัวข้อใหม่ ถ้าไม่มีเนื้อหาจะคืน null แล้วถูกกรองทิ้งตอนประกอบร่าง */
+function facetSection(headingTh, bodyTh, sourceTh) {
+  if (!bodyTh) return null;
+  return { headingTh, bodyTh, sourceTh };
+}
+
+/** คีย์ของฐานข้อมูลธาตุประจำตัว เช่น Wood-strong หรือ Water-weak */
+function dayMasterKey(bazi) {
+  const element = bazi && bazi.dayMaster ? bazi.dayMaster.element : '';
+  if (!element) return '';
+  const isStrong = !!(bazi.strength && bazi.strength.isStrong);
+  return element + '-' + (isStrong ? 'strong' : 'weak');
+}
+
+/** คีย์ของเลขเส้นทางชีวิตและเลขจังหวะปีนี้ ต้องเป็นตัวเลขจริงเท่านั้น */
+function numKey(value) {
+  return Number.isFinite(Number(value)) ? String(Number(value)) : '';
+}
+
+/**
+ * สร้างหัวข้อจากผังทักษา โดยดูว่า "ดาวดวงไหนไปอยู่ตำแหน่งไหน" ของคนคนนี้
+ * คนเกิดคนละวันจะได้ดาวคนละดวงในตำแหน่งเดียวกัน ข้อความจึงต่างกัน
+ */
+function taksaSection(taksa, positionId, headingTh) {
+  const slot = taksa && taksa.byId ? taksa.byId[positionId] : null;
+  if (!slot || !slot.planetId) return null;
+  const row = TAKSA_DETAIL_TH[slot.planetId + '-' + positionId];
+  if (!row || typeof row.meaningTh !== 'string' || !row.meaningTh.trim()) return null;
+  const advice = typeof row.adviceTh === 'string' && row.adviceTh.trim() ? ' ' + row.adviceTh.trim() : '';
+  return {
+    headingTh,
+    bodyTh: row.meaningTh.trim() + advice,
+    sourceTh: 'มาจาก: ผังทักษาปกรณ์ ตำแหน่ง' + (slot.nameTh || positionId)
+      + ' ซึ่งเป็น' + (slot.planetNameTh || 'ดาวประจำตำแหน่ง') + ' เมื่อคำนวณจากวันเกิดของคุณ'
   };
 }
 
@@ -93,10 +145,10 @@ export class LifeDomainsEngine {
       meta: { taksa, bazi, zodiac, thai, numerology, luck, currentLuck, chong, age, hasTime },
       domains: {
         career: this.buildCareer({ taksa, bazi, zodiac, houses, numerology, gods, dmElement, currentLuck, hasTime }),
-        money: this.buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck }),
-        love: this.buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime }),
-        health: this.buildHealth({ taksa, bazi, thai, dmElement }),
-        luck: this.buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses })
+        money: this.buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck, numerology }),
+        love: this.buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime, numerology }),
+        health: this.buildHealth({ taksa, bazi, thai, dmElement, numerology }),
+        luck: this.buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses, numerology })
       }
     };
   }
@@ -125,6 +177,29 @@ export class LifeDomainsEngine {
       ? 'ภพการงานของคุณ (ภพที่ 10 กัมมะ) ตกราศี' + houses[10].signNameTh + ' เจ้าเรือนคือ' + houses[10].rulerTh
         + ' บ่งว่าสไตล์การทำงานของคุณจะออกแนว ' + houses[10].signTraitTh
       : 'ยังดูภพการงาน (ภพที่ 10) ไม่ได้ เพราะต้องใช้เวลาเกิดที่แน่นอนมาคำนวณลัคนาก่อน';
+
+    // หัวข้อเพิ่มเติมที่ดึงจากฐานข้อมูล เลือกตามค่าที่คำนวณได้ของเจ้าของดวงคนนี้
+    const dmKey = dayMasterKey(bazi);
+    const lpKey = numKey(numerology && numerology.lifePath);
+    const pyKey = numKey(numerology && numerology.personalYear);
+    const extraSections = [
+      facetSection(
+        'นิสัยการทำงานจริงของคุณ',
+        facet(BY_DAY_MASTER, dmKey, 'career'),
+        'มาจาก: ธาตุประจำตัวในดวงจีน คู่กับผลตรวจว่าธาตุนั้นแข็งหรืออ่อน'
+      ),
+      facetSection(
+        'เส้นทางอาชีพที่ตรงกับเลขวันเกิดคุณ',
+        facet(BY_LIFE_PATH, lpKey, 'career'),
+        'มาจาก: เลขเส้นทางชีวิต บวกจากวันเดือนปีเกิดของคุณ ได้เลข ' + (lpKey || '-')
+      ),
+      facetSection(
+        'เรื่องงานในปีนี้ควรทำอะไรก่อน',
+        facet(BY_PERSONAL_YEAR, pyKey, 'career'),
+        'มาจาก: เลขจังหวะชีวิตประจำปีนี้ของคุณ คือเลข ' + (pyKey || '-')
+      ),
+      taksaSection(taksa, 'dech', 'ดาวประจำตำแหน่งเดชของคุณบอกอะไรเรื่องงาน')
+    ].filter(Boolean);
 
     return {
       id: 'career',
@@ -162,7 +237,8 @@ export class LifeDomainsEngine {
           bodyTh: 'ตอนนี้คุณอยู่ในรอบโชคชะตา 10 ปีชื่อ ' + currentLuck.nameTh + ' (อายุ ' + currentLuck.ageFrom + '-' + currentLuck.ageTo + ' ปี) '
             + currentLuck.verdictTh + ' ดาวเด่นของรอบนี้คือ ' + currentLuck.god.nameTh + ' ซึ่งเกี่ยวกับ ' + currentLuck.god.domainTh,
           sourceTh: 'มาจาก: ต้าอวิ้น (大運) รอบโชคชะตา 10 ปีในดวงจีน'
-        }
+        },
+        ...extraSections
       ],
       doThisTh: [
         'ใส่' + dech.colorName + ' (สีเดช) ในวันที่ต้องสัมภาษณ์งาน นำเสนองาน หรือขอตำแหน่ง — ' + dech.exampleTh,
@@ -179,7 +255,7 @@ export class LifeDomainsEngine {
   }
 
   // ---------------------------------------------------------------- การเงิน
-  static buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck }) {
+  static buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck, numerology }) {
     const mula = taksa.byId.mula;
     const si = taksa.byId.si;
 
@@ -207,6 +283,28 @@ export class LifeDomainsEngine {
         + ' และภพลาภลอย (ภพที่ 11 ลาภะ) ตกราศี' + houses[11].signNameTh
       : 'ยังดูภพการเงิน (ภพที่ 2) และภพลาภ (ภพที่ 11) ไม่ได้ เพราะต้องใช้เวลาเกิดที่แน่นอน';
 
+    const dmKey = dayMasterKey(bazi);
+    const lpKey = numKey(numerology && numerology.lifePath);
+    const pyKey = numKey(numerology && numerology.personalYear);
+    const extraSections = [
+      facetSection(
+        'นิสัยการใช้เงินของคุณ',
+        facet(BY_DAY_MASTER, dmKey, 'money'),
+        'มาจาก: ธาตุประจำตัวในดวงจีน คู่กับผลตรวจว่าธาตุนั้นแข็งหรืออ่อน'
+      ),
+      facetSection(
+        'วิธีเก็บเงินที่เหมาะกับเลขวันเกิดคุณ',
+        facet(BY_LIFE_PATH, lpKey, 'money'),
+        'มาจาก: เลขเส้นทางชีวิต บวกจากวันเดือนปีเกิดของคุณ ได้เลข ' + (lpKey || '-')
+      ),
+      facetSection(
+        'เรื่องเงินในปีนี้ควรทำอะไรก่อน',
+        facet(BY_PERSONAL_YEAR, pyKey, 'money'),
+        'มาจาก: เลขจังหวะชีวิตประจำปีนี้ของคุณ คือเลข ' + (pyKey || '-')
+      ),
+      taksaSection(taksa, 'mula', 'ดาวประจำตำแหน่งมูละของคุณบอกอะไรเรื่องทรัพย์สิน')
+    ].filter(Boolean);
+
     return {
       id: 'money',
       icon: 'coins',
@@ -229,7 +327,8 @@ export class LifeDomainsEngine {
           headingTh: 'ทิศที่ควรหันโต๊ะทำงานหรือหัวเตียง',
           bodyTh: favDirections.join(' และ ') + ' เป็นทิศที่ตรงกับธาตุที่ดวงคุณต้องการ ถ้าจัดโต๊ะทำงานหรือที่นั่งประจำให้หันไปทางนี้ ตำราถือว่าช่วยเรื่องจังหวะการเงิน',
           sourceTh: 'มาจาก: การจับคู่ธาตุที่ควรเสริมกับทิศตามตำราจีน'
-        }
+        },
+        ...extraSections
       ],
       doThisTh: [
         'ใช้' + mula.colorName + ' (สีมูละ) กับกระเป๋าสตางค์ หรือใส่ในวันที่ทำเรื่องเงินก้อน — ' + mula.exampleTh,
@@ -247,7 +346,7 @@ export class LifeDomainsEngine {
   }
 
   // ---------------------------------------------------------------- ความรัก
-  static buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime }) {
+  static buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime, numerology }) {
     const si = taksa.byId.si;
     const isSingle = relationshipStatus !== 'partnered' && relationshipStatus !== 'married';
     const matches = CompatibilityEngine.findBestMatches(birthDate, birthTime || '12:00');
@@ -282,6 +381,28 @@ export class LifeDomainsEngine {
         sourceTh: 'มาจาก: ลักษณะนิสัยด้านความรักตามปีนักษัตร และดาวคู่ครองในดวงจีน'
       };
 
+    const dmKey = dayMasterKey(bazi);
+    const lpKey = numKey(numerology && numerology.lifePath);
+    const pyKey = numKey(numerology && numerology.personalYear);
+    const extraSections = [
+      facetSection(
+        'ท่าทีของคุณเวลามีความรัก',
+        facet(BY_DAY_MASTER, dmKey, 'love'),
+        'มาจาก: ธาตุประจำตัวในดวงจีน คู่กับผลตรวจว่าธาตุนั้นแข็งหรืออ่อน'
+      ),
+      facetSection(
+        'สิ่งที่คุณต้องการจากคู่ ตามเลขวันเกิด',
+        facet(BY_LIFE_PATH, lpKey, 'love'),
+        'มาจาก: เลขเส้นทางชีวิต บวกจากวันเดือนปีเกิดของคุณ ได้เลข ' + (lpKey || '-')
+      ),
+      facetSection(
+        'เรื่องคู่ในปีนี้ควรทำอะไรก่อน',
+        facet(BY_PERSONAL_YEAR, pyKey, 'love'),
+        'มาจาก: เลขจังหวะชีวิตประจำปีนี้ของคุณ คือเลข ' + (pyKey || '-')
+      ),
+      taksaSection(taksa, 'si', 'ดาวประจำตำแหน่งศรีของคุณบอกอะไรเรื่องเสน่ห์')
+    ].filter(Boolean);
+
     return {
       id: 'love',
       icon: 'heart',
@@ -298,7 +419,8 @@ export class LifeDomainsEngine {
           bodyTh: 'ตำแหน่งศรีในผังทักษาของคุณคือ' + si.planetNameTh + ' ซึ่งให้พลังด้าน ' + si.planetTraitTh
             + ' นี่คือ "เสน่ห์ตามธรรมชาติ" ของคุณ ถ้าใช้จุดนี้เป็นจะดึงดูดคนได้โดยไม่ต้องฝืนเป็นคนอื่น',
           sourceTh: 'มาจาก: ตำแหน่งศรีในผังทักษาปกรณ์ คำนวณจากวันเกิดของคุณ'
-        }
+        },
+        ...extraSections
       ],
       doThisTh: [
         'ใส่' + si.colorName + ' (สีศรี) ในวันเดต วันเจอครอบครัวแฟน หรือวันถ่ายรูปโปรไฟล์ — ' + si.exampleTh,
@@ -316,7 +438,7 @@ export class LifeDomainsEngine {
   }
 
   // ---------------------------------------------------------------- สุขภาพ
-  static buildHealth({ taksa, bazi, thai, dmElement }) {
+  static buildHealth({ taksa, bazi, thai, dmElement, numerology }) {
     const ayu = taksa.byId.ayu;
     const body = thai.bodyElement;
     const missing = bazi.missingElementsTh;
@@ -325,6 +447,54 @@ export class LifeDomainsEngine {
     const balanceTh = missing.length
       ? 'ดวงจีนของคุณขาดธาตุ' + missing.join(' และธาตุ') + ' ซึ่งตำราถือว่าเป็นจุดที่ร่างกายและชีวิตอาจไม่สมดุล ควรเสริมด้วยสี อาหาร และกิจกรรมที่ตรงกับธาตุนั้น'
       : 'ดวงจีนของคุณมีครบทั้ง 5 ธาตุ ถือว่าสมดุลดี แต่ธาตุที่อ่อนที่สุดคือธาตุ' + weakest + ' จึงควรดูแลด้านนี้เป็นพิเศษ';
+
+    const dmKey = dayMasterKey(bazi);
+    const lpKey = numKey(numerology && numerology.lifePath);
+    const pyKey = numKey(numerology && numerology.personalYear);
+    const beKey = body && body.id ? body.id : '';
+    const beSourceTh = 'มาจาก: ธาตุเจ้าเรือนตามแพทย์แผนไทย ซึ่งดูจากเดือนเกิดของคุณ';
+    const bodyHealth = facet(BY_BODY_ELEMENT, beKey, 'health');
+    const bodyWarn = facet(BY_BODY_ELEMENT, beKey, 'warn');
+    const bodyFood = facet(BY_BODY_ELEMENT, beKey, 'food');
+    const bodyDaily = facet(BY_BODY_ELEMENT, beKey, 'daily');
+    const extraSections = [
+      facetSection(
+        'ร่างกายและอาการที่คนธาตุเจ้าเรือนแบบคุณเจอบ่อย',
+        bodyHealth,
+        beSourceTh
+      ),
+      facetSection(
+        'สัญญาณที่เจอแล้วต้องไปหาหมอ ไม่ต้องรอ',
+        bodyWarn,
+        beSourceTh
+      ),
+      facetSection(
+        'อาหารที่ควรกินและควรเลี่ยงของธาตุเจ้าเรือนคุณ',
+        bodyFood,
+        beSourceTh
+      ),
+      facetSection(
+        'สิ่งที่ควรทำให้ได้ทุกวัน',
+        bodyDaily,
+        beSourceTh
+      ),
+      facetSection(
+        'จุดที่ร่างกายคุณมักพังก่อนตามธาตุประจำตัว',
+        facet(BY_DAY_MASTER, dmKey, 'health'),
+        'มาจาก: ธาตุประจำตัวในดวงจีน คู่กับผลตรวจว่าธาตุนั้นแข็งหรืออ่อน'
+      ),
+      facetSection(
+        'นิสัยที่ทำให้สุขภาพเสีย ตามเลขวันเกิดคุณ',
+        facet(BY_LIFE_PATH, lpKey, 'health'),
+        'มาจาก: เลขเส้นทางชีวิต บวกจากวันเดือนปีเกิดของคุณ ได้เลข ' + (lpKey || '-')
+      ),
+      facetSection(
+        'สุขภาพในปีนี้ควรดูแลเรื่องอะไรก่อน',
+        facet(BY_PERSONAL_YEAR, pyKey, 'health'),
+        'มาจาก: เลขจังหวะชีวิตประจำปีนี้ของคุณ คือเลข ' + (pyKey || '-')
+      ),
+      taksaSection(taksa, 'ayu', 'ดาวประจำตำแหน่งอายุของคุณบอกอะไรเรื่องร่างกาย')
+    ].filter(Boolean);
 
     return {
       id: 'health',
@@ -347,7 +517,8 @@ export class LifeDomainsEngine {
         },
         { headingTh: 'อาหารที่เหมาะกับธาตุคุณ', bodyTh: body.foodTh, sourceTh: 'มาจาก: หลักการปรับสมดุลธาตุด้วยรสอาหารในแพทย์แผนไทย' },
         { headingTh: 'วิธีปรับสมดุล', bodyTh: body.balanceTh, sourceTh: 'มาจาก: หลักการปรับสมดุลธาตุเจ้าเรือน' },
-        { headingTh: 'ความสมดุลธาตุในดวงจีน', bodyTh: balanceTh, sourceTh: 'มาจาก: การนับกำลังธาตุจากก้านฟ้าและสารซ่อนในกิ่งดินทั้ง 4 เสา' }
+        { headingTh: 'ความสมดุลธาตุในดวงจีน', bodyTh: balanceTh, sourceTh: 'มาจาก: การนับกำลังธาตุจากก้านฟ้าและสารซ่อนในกิ่งดินทั้ง 4 เสา' },
+        ...extraSections
       ],
       doThisTh: [
         'ใส่' + ayu.colorName + ' (สีอายุ) ในวันไปตรวจสุขภาพหรือวันเดินทางไกล — ' + ayu.exampleTh,
@@ -364,9 +535,31 @@ export class LifeDomainsEngine {
   }
 
   // ------------------------------------------------- โชคลาภและจังหวะชีวิต
-  static buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses }) {
+  static buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses, numerology }) {
     const si = taksa.byId.si;
     const mula = taksa.byId.mula;
+
+    const dmKey = dayMasterKey(bazi);
+    const lpKey = numKey(numerology && numerology.lifePath);
+    const pyKey = numKey(numerology && numerology.personalYear);
+    const extraSections = [
+      facetSection(
+        'จังหวะดีของคุณมักมาตอนไหน',
+        facet(BY_DAY_MASTER, dmKey, 'luck'),
+        'มาจาก: ธาตุประจำตัวในดวงจีน คู่กับผลตรวจว่าธาตุนั้นแข็งหรืออ่อน'
+      ),
+      facetSection(
+        'โชคของคุณมาจากทางไหน ตามเลขวันเกิด',
+        facet(BY_LIFE_PATH, lpKey, 'luck'),
+        'มาจาก: เลขเส้นทางชีวิต บวกจากวันเดือนปีเกิดของคุณ ได้เลข ' + (lpKey || '-')
+      ),
+      facetSection(
+        'จังหวะปีนี้ของคุณควรเดินยังไง',
+        facet(BY_PERSONAL_YEAR, pyKey, 'luck'),
+        'มาจาก: เลขจังหวะชีวิตประจำปีนี้ของคุณ คือเลข ' + (pyKey || '-')
+      ),
+      taksaSection(taksa, 'montri', 'ดาวประจำตำแหน่งมนตรีของคุณบอกอะไรเรื่องคนช่วยเหลือ')
+    ].filter(Boolean);
 
     return {
       id: 'luck',
@@ -405,7 +598,8 @@ export class LifeDomainsEngine {
             + ' / สีอายุ (สุขภาพ) = ' + taksa.byId.ayu.colorName
             + ' และสีที่ต้องเลี่ยงคือ ' + taksa.byId.kalakini.colorName,
           sourceTh: 'มาจาก: ผังทักษาปกรณ์ทั้ง 8 ตำแหน่ง คำนวณจาก' + taksa.weekdayNameTh + 'ที่คุณเกิด'
-        }
+        },
+        ...extraSections
       ],
       doThisTh: [
         'ใช้เลข ' + goodNumbers.join(' ') + ' กับสิ่งที่ต้องเลือกเลข เช่น เบอร์โทร ทะเบียนรถ เลขที่นั่ง',

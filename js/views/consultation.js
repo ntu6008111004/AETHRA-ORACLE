@@ -217,12 +217,20 @@ export class ConsultationView {
 
       const result = await OracleAIService.sendChat(history, {
         purpose: 'consultation:' + currentTopic + ':' + detectIntent(text).id,
-        context
+        context,
+        // ระหว่างลองใหม่ ให้ยังโชว์ว่ากำลังทำงานอยู่ ไม่ต้องทำให้ผู้ใช้ตกใจ
+        onRetry: (attempt) => {
+          setConnectionState('working', 'สายยังไม่นิ่ง กำลังต่อใหม่ให้ครับ');
+          renderMessages('ดวงดาวยังเรียงตัวไม่ลงตัว กำลังลองอีกครั้ง (ครั้งที่ ' + (attempt + 1) + ')…');
+        }
       });
 
       Storage.saveConsultationMessage(currentTopic, {
         role: 'oracle',
-        text: result.success ? stripMarkdown(result.answer) : `ขออภัยครับ ${result.message}`,
+        text: result.success
+          ? stripMarkdown(result.answer)
+          : 'ตอนนี้สายไม่ว่างจริง ๆ ครับ ลองกดถามอีกครั้งใน 1-2 นาที '
+            + 'ระหว่างนี้ดูผลดวงที่คำนวณไว้แล้วได้ที่หน้า ดูดวงของฉัน',
         isError: !result.success
       });
       if (result.success) {

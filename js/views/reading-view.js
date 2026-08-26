@@ -372,7 +372,13 @@ export class ReadingView {
 
     const response = await OracleAIService.sendChat(
       [{ role: 'user', content: prompt }],
-      { purpose: `reading:${domainId}`, context: this.buildContext(result, profile, domainId) }
+      {
+        purpose: `reading:${domainId}`,
+        context: this.buildContext(result, profile, domainId),
+        onRetry: (attempt) => {
+          answerBox.innerHTML = `<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span> สายยังไม่นิ่ง กำลังลองอีกครั้ง (ครั้งที่ ${attempt + 1})…</div>`;
+        }
+      }
     );
 
     btn.disabled = false;
@@ -383,8 +389,8 @@ export class ReadingView {
         <div class="ai-error">
           <strong>ยังเรียก AI ไม่สำเร็จ</strong>
           <p>${escapeHtml(response.message)}</p>
-          <p class="ai-error-hint">ถ้าคุณเปิดเว็บด้วยการดับเบิลคลิกไฟล์ index.html จะใช้ AI ไม่ได้
-          ต้องเปิดผ่านเซิร์ฟเวอร์ด้วยคำสั่ง <code>node scripts/server.js</code> แล้วเข้า http://localhost:3000</p>
+          <p class="ai-error-hint">ลองกดปุ่มอีกครั้งใน 1-2 นาที ระบบจะต่อสายใหม่ให้เอง
+          ส่วนผลดวงที่คำนวณไว้ด้านบนดูได้ตามปกติโดยไม่ต้องใช้ AI</p>
         </div>`;
       SoundManager.play('error-alert');
       return;

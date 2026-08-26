@@ -172,12 +172,29 @@ export class TarotView {
                 <p style="font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.85; margin-bottom: var(--space-2);">
                   <strong style="color: var(--color-gold-light);">ความหมาย:</strong> ${c.meaningTh || c.keywordsTh}
                 </p>
-                ${c.adviceTh ? `<p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.8; margin-bottom: var(--space-2);">
+                ${c.adviceTh ? `<p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.8; margin-bottom: var(--space-3);">
                   <strong style="color: #68D391;">คำแนะนำ:</strong> ${c.adviceTh}
                 </p>` : ''}
-                ${c.isReversed && c.reversedTh ? `<p style="font-size: var(--font-size-sm); color: #FEB2B2; line-height: 1.8;">
-                  ${c.reversedTh}
-                </p>` : ''}
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-3);">
+                  ${c.loveTh ? `<div style="background: rgba(213, 63, 140, 0.07); border: 1px solid rgba(213, 63, 140, 0.3); border-radius: 10px; padding: var(--space-3) var(--space-4);">
+                    <div style="font-size: 11px; color: #F687B3; font-weight: 700; margin-bottom: 2px;">💗 ด้านความรัก</div>
+                    <p style="font-size: 12px; color: var(--color-text-primary); line-height: 1.7;">${c.loveTh}</p>
+                  </div>` : ''}
+                  ${c.workTh ? `<div style="background: rgba(197, 160, 89, 0.07); border: 1px solid rgba(197, 160, 89, 0.3); border-radius: 10px; padding: var(--space-3) var(--space-4);">
+                    <div style="font-size: 11px; color: var(--color-gold-bright); font-weight: 700; margin-bottom: 2px;">💼 ด้านการงาน</div>
+                    <p style="font-size: 12px; color: var(--color-text-primary); line-height: 1.7;">${c.workTh}</p>
+                  </div>` : ''}
+                  ${c.healthTh ? `<div style="background: rgba(72, 187, 120, 0.07); border: 1px solid rgba(72, 187, 120, 0.3); border-radius: 10px; padding: var(--space-3) var(--space-4);">
+                    <div style="font-size: 11px; color: #68D391; font-weight: 700; margin-bottom: 2px;">🩺 ด้านสุขภาพ</div>
+                    <p style="font-size: 12px; color: var(--color-text-primary); line-height: 1.7;">${c.healthTh}</p>
+                  </div>` : ''}
+                </div>
+
+                ${c.isReversed && c.reversedTh ? `<div style="background: rgba(252, 129, 129, 0.07); border: 1px solid rgba(252, 129, 129, 0.3); border-radius: 10px; padding: var(--space-3) var(--space-4);">
+                  <div style="font-size: 11px; color: #FC8181; font-weight: 700; margin-bottom: 2px;">🔄 ไพ่ใบนี้ออกกลับหัว</div>
+                  <p style="font-size: 12px; color: #FEB2B2; line-height: 1.75;">${c.reversedTh}</p>
+                </div>` : ''}
               </div>
             `).join('')}
           </div>

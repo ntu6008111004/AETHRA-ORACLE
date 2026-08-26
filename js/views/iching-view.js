@@ -144,7 +144,16 @@ export class IChingView {
               <div style="font-size: 11px; color: #68D391; font-weight: 700; margin-bottom: 2px;">💰 ด้านการเงิน</div>
               <p style="font-size: 12px; color: var(--color-text-primary); line-height: 1.7;">${hex.moneyTh}</p>
             </div>` : ''}
+            ${hex.healthTh ? `<div style="background: rgba(56, 178, 172, 0.07); border: 1px solid rgba(56, 178, 172, 0.3); border-radius: 10px; padding: var(--space-3) var(--space-4);">
+              <div style="font-size: 11px; color: #4FD1C5; font-weight: 700; margin-bottom: 2px;">🩺 ด้านสุขภาพ</div>
+              <p style="font-size: 12px; color: var(--color-text-primary); line-height: 1.7;">${hex.healthTh}</p>
+            </div>` : ''}
           </div>
+
+          ${hex.warnTh ? `<div style="background: rgba(229, 62, 62, 0.08); border: 1px solid rgba(229, 62, 62, 0.32); border-left: 4px solid #FC8181; border-radius: 10px; padding: var(--space-3) var(--space-4); margin-bottom: var(--space-4);">
+            <div style="font-size: 11px; color: #FC8181; font-weight: 700; margin-bottom: 2px;">⚠️ สิ่งที่ต้องระวัง</div>
+            <p style="font-size: 12px; color: var(--color-text-primary); line-height: 1.75;">${hex.warnTh}</p>
+          </div>` : ''}
 
           <div style="background: rgba(12, 13, 16, 0.45); border: var(--border-subtle); border-radius: 10px; padding: var(--space-4); margin-bottom: var(--space-4);">
             <div style="font-size: 11px; color: var(--color-gold-bright); font-weight: 700; margin-bottom: var(--space-2);">🧭 อ่านจากโครงสร้างก๊ก:</div>
@@ -204,6 +213,8 @@ export class IChingView {
           'ก๊กที่ ' + hex.number + ' ' + hex.nameTh + ' (' + hex.nameEn + ')',
           'คำตัดสิน: ' + hex.judgementTh,
           'คำแนะนำ: ' + hex.adviceTh,
+          'ด้านสุขภาพ: ' + hex.healthTh,
+          'สิ่งที่ต้องระวัง: ' + hex.warnTh,
           'โครงสร้าง: บน=' + hex.upperTrigram.nameTh + ' ล่าง=' + hex.lowerTrigram.nameTh,
           result.hasChangingLines
             ? 'เส้นแปร: เส้นที่ ' + result.changingPositions.join(', ') + ' แปรไปสู่ก๊กที่ ' + result.transformed.number + ' ' + result.transformed.nameTh + ' (' + result.transformed.judgementTh + ')'

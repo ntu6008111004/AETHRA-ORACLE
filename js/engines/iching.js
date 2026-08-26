@@ -3,7 +3,24 @@
  * 64 Hexagrams, Trigrams, and 3-Bronze-Coin divination method.
  */
 
-import { HEXAGRAM_MEANINGS, TRIGRAM_ROLES } from './iching-meanings.js';
+import { ICHING_TH_1 } from '../data/iching-01-22.js';
+import { ICHING_TH_2 } from '../data/iching-23-43.js';
+import { ICHING_TH_3 } from '../data/iching-44-64.js';
+
+// ตารางคำทำนายไทยครบ 64 ก๊ก (รวมจากไฟล์ข้อมูลสามชุด)
+export const HEXAGRAM_MEANINGS = { ...ICHING_TH_1, ...ICHING_TH_2, ...ICHING_TH_3 };
+
+// บทบาทของตรีลักษณ์ ใช้อ่านโครงสร้างก๊ก (บน = สถานการณ์ภายนอก, ล่าง = ใจของผู้ถาม)
+export const TRIGRAM_ROLES = {
+  '111': { outerTh: 'สถานการณ์ภายนอกมีพลังขับเคลื่อนแรงและเป็นทางการ', innerTh: 'ใจคุณแข็งแกร่ง มุ่งมั่น พร้อมนำ' },
+  '000': { outerTh: 'สถานการณ์ภายนอกเปิดกว้าง ยอมรับ และรอการเติมเต็ม', innerTh: 'ใจคุณอ่อนโยน พร้อมรองรับและปรับตาม' },
+  '100': { outerTh: 'ภายนอกกำลังมีความเคลื่อนไหวหรือข่าวที่ปลุกทุกอย่างให้ตื่น', innerTh: 'ใจคุณอยากขยับ อยากเริ่ม อยากลงมือทันที' },
+  '010': { outerTh: 'ภายนอกมีความเสี่ยงหรือความไม่แน่นอนซ่อนอยู่', innerTh: 'ใจคุณกำลังอยู่ในห้วงคิดลึกหรือความกังวล' },
+  '001': { outerTh: 'ภายนอกกำลังนิ่ง หยุดชะงัก หรือรอการตัดสินใจ', innerTh: 'ใจคุณต้องการความสงบและการหยุดพัก' },
+  '011': { outerTh: 'ภายนอกมีการเปลี่ยนแปลงแบบค่อยเป็นค่อยไปแทรกซึมเข้ามา', innerTh: 'ใจคุณโอนอ่อน ละเอียด และพร้อมปรับวิธี' },
+  '101': { outerTh: 'ภายนอกสว่าง ชัดเจน ทุกคนกำลังมองเห็นสิ่งที่เกิดขึ้น', innerTh: 'ใจคุณสว่าง มีไอเดีย และอยากแสดงออก' },
+  '110': { outerTh: 'ภายนอกมีบรรยากาศรื่นรมย์ การพูดคุย และการเข้าสังคม', innerTh: 'ใจคุณเบิกบาน อยากแลกเปลี่ยนกับผู้คน' }
+};
 
 export const TRIGRAMS = {
   '111': { nameEn: 'Heaven', nameTh: 'ฟ้า (เฉียน)', symbol: '☰', nature: 'Creative, Strong' },
@@ -96,41 +113,32 @@ const KING_WEN_NUMBERS = [
 ];
 
 const SPECIAL_READINGS = {
-  1: {
-    judgementEn: 'Sublime success through perseverance. Pure creative power unfolds through right timing.',
-    judgementTh: 'ความสำเร็จเกิดจากความแน่วแน่ พลังสร้างสรรค์ควรเคลื่อนไปตามจังหวะที่เหมาะสม'
-  },
-  2: {
-    judgementEn: 'Receptive devotion brings progress through quiet support and patience.',
-    judgementTh: 'ความอ่อนน้อมและการโอบอุ้มนำมาซึ่งความราบรื่น ควรใช้ความอดทนและรองรับสิ่งต่าง อย่างมั่นคง'
-  },
-  11: {
-    judgementEn: 'Heaven and Earth are in communion. Obstruction eases and constructive exchange becomes possible.',
-    judgementTh: 'ฟ้าและดินประสานสัมพันธ์ สิ่งติดขัดคลี่คลาย เปิดทางให้ความร่วมมือที่สร้างสรรค์'
-  },
-  64: {
-    judgementEn: 'Completion is near, but the final transition requires care and clear attention.',
-    judgementTh: 'ความสำเร็จอยู่ใกล้ การข้ามผ่านขั้นสุดท้ายต้องใช้ความรอบคอบและสติที่ชัดเจน'
-  }
+  1: { judgementEn: 'Sublime success through perseverance. Pure creative power unfolds through right timing.' },
+  2: { judgementEn: 'Receptive devotion brings progress through quiet support and patience.' },
+  11: { judgementEn: 'Heaven and Earth are in communion. Obstruction eases and constructive exchange becomes possible.' },
+  64: { judgementEn: 'Completion is near, but the final transition requires care and clear attention.' }
 };
 
 export const HEXAGRAMS = KING_WEN_NUMBERS.flatMap((row, upperIndex) =>
   row.map((number, lowerIndex) => {
     const upperKey = TRIGRAM_ORDER[upperIndex];
     const lowerKey = TRIGRAM_ORDER[lowerIndex];
-    const [nameEn, nameTh] = HEXAGRAM_NAMES[number - 1];
+    const [nameEn, fallbackNameTh] = HEXAGRAM_NAMES[number - 1];
     const special = SPECIAL_READINGS[number];
+    const meaning = HEXAGRAM_MEANINGS[number] || {};
     return {
       number,
       binary: `${upperKey}${lowerKey}`,
       nameEn,
-      nameTh,
+      nameTh: meaning.name || fallbackNameTh,
       judgementEn: special?.judgementEn || `${nameEn} calls for measured attention to timing, relationships, and the consequences of the next step.`,
-      judgementTh: HEXAGRAM_MEANINGS[number]?.j || special?.judgementTh || `${nameTh} ชวนให้พิจารณาจังหวะ ความสัมพันธ์ และผลของก้าวต่อไปอย่างมีสติ`,
-      adviceTh: HEXAGRAM_MEANINGS[number]?.a || '',
-      loveTh: HEXAGRAM_MEANINGS[number]?.love || '',
-      workTh: HEXAGRAM_MEANINGS[number]?.work || '',
-      moneyTh: HEXAGRAM_MEANINGS[number]?.money || '',
+      judgementTh: meaning.j || '',
+      adviceTh: meaning.a || '',
+      loveTh: meaning.love || '',
+      workTh: meaning.work || '',
+      moneyTh: meaning.money || '',
+      healthTh: meaning.health || '',
+      warnTh: meaning.warn || '',
       upperRole: TRIGRAM_ROLES[upperKey],
       lowerRole: TRIGRAM_ROLES[lowerKey],
       upperTrigram: TRIGRAMS[upperKey],

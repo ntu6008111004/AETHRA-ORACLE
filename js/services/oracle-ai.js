@@ -191,55 +191,94 @@ async function callServer(messages, context, purpose, signal) {
 }
 
 export class OracleAIService {
-  static async sendChat(messages, { context = '', purpose = 'consultation' } = {}) {
+  /**
+   * ส่งคำถามให้ AI พร้อมระบบลองใหม่อัตโนมัติ
+   *
+   * ปัญหาที่แก้: บางครั้งครั้งแรกล้มเหลว (Cloudflare ของ ThaiLLM สุ่มบล็อก
+   * หรือเน็ตสะดุดชั่วขณะ) แต่ถามซ้ำกลับได้ ผู้ใช้จึงเห็นข้อความ
+   * "เชื่อมต่อไม่สำเร็จ" ทั้งที่ระบบใช้งานได้ปกติ
+   *
+   * วิธีแก้: ไล่ลองทุกช่องทางและลองซ้ำเงียบ ๆ ก่อน
+   * จะแสดงข้อความผิดพลาดก็ต่อเมื่อลองครบทุกทางแล้วจริง ๆ
+   */
+  static async sendChat(messages, { context = '', purpose = 'consultation', onRetry = null } = {}) {
     const normalized = normalizeMessages(messages);
     if (!normalized.length) {
       return { success: false, error: 'invalid_request', message: 'กรุณาพิมพ์คำถามก่อนส่ง' };
     }
 
-    const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    try {
-      const mode = await detectMode();
-      const order = mode === 'server'
-        ? ['server', 'proxy', 'direct']
-        : mode === 'proxy' ? ['proxy', 'direct'] : ['direct', 'proxy'];
+    const mode = await detectMode();
+    // ไล่ลำดับช่องทาง โดยเริ่มจากช่องที่ตรวจพบว่าพร้อมที่สุด
+    const order = mode === 'server'
+      ? ['server', 'proxy', 'direct']
+      : mode === 'proxy' ? ['proxy', 'direct', 'server'] : ['direct', 'proxy', 'server'];
 
-      let result = null;
-      for (const attempt of order) {
-        if (attempt === 'server') result = await callServer(normalized, context, purpose, controller.signal);
-        else if (attempt === 'proxy') result = await callProxy(normalized, context, purpose, controller.signal).catch(() => null);
-        else result = await callDirect(normalized, context, purpose, controller.signal).catch(() => null);
+    const callers = {
+      server: callServer,
+      proxy: callProxy,
+      direct: callDirect
+    };
+
+    let lastFailure = null;
+    let attemptNumber = 0;
+
+    // ลองสองรอบ รอบละครบทุกช่องทาง เผื่อกรณีโดนบล็อกชั่วคราว
+    for (let round = 0; round < 2; round++) {
+      for (const channel of order) {
+        attemptNumber += 1;
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+        let result = null;
+        try {
+          result = await callers[channel](normalized, context, purpose, controller.signal);
+        } catch (error) {
+          result = {
+            success: false,
+            error: error?.name === 'AbortError' ? 'timeout' : 'network_error',
+            message: error?.name === 'AbortError'
+              ? 'หมอดูใช้เวลาเปิดตำรานานเกินไป'
+              : 'เชื่อมต่อไม่สำเร็จชั่วคราว'
+          };
+        } finally {
+          clearTimeout(timeout);
+        }
 
         if (result?.success) {
-          cachedMode = attempt;
-          break;
+          cachedMode = channel;
+          const parsed = parseOracleThinking(result.rawAnswer);
+          // บางครั้งโมเดลใช้โควตาไปกับการคิดจนเนื้อคำตอบว่าง ให้ถือว่าล้มเหลวและลองใหม่
+          if (parsed.answer) {
+            return {
+              success: true,
+              answer: parsed.answer,
+              thinking: parsed.thinking,
+              model: result.model,
+              usage: result.usage,
+              mode: channel,
+              attempts: attemptNumber
+            };
+          }
+          lastFailure = { success: false, error: 'empty_answer', message: 'หมอดูยังเรียบเรียงคำตอบไม่เสร็จ' };
+        } else {
+          lastFailure = result;
         }
+
+        // แจ้งชั้นบนว่ากำลังลองใหม่ เพื่อให้ยังโชว์ข้อความกำลังคิดอยู่
+        if (typeof onRetry === 'function') {
+          try { onRetry(attemptNumber); } catch { /* ไม่ให้ตัวแจ้งทำให้ทั้งหมดพัง */ }
+        }
+
+        // หน่วงสั้น ๆ ก่อนลองช่องถัดไป ช่วยมากเวลาโดนจำกัดอัตราการเรียก
+        await new Promise(resolve => setTimeout(resolve, 700 + round * 1500));
       }
-
-      if (!result) result = { success: false, error: 'network_error', message: 'เชื่อมต่อห้องปรึกษาไม่สำเร็จ กรุณาลองใหม่อีกครั้ง' };
-      if (!result.success) return result;
-
-      const parsed = parseOracleThinking(result.rawAnswer);
-      return {
-        success: true,
-        answer: parsed.answer,
-        thinking: parsed.thinking,
-        model: result.model,
-        usage: result.usage,
-        mode
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error?.name === 'AbortError' ? 'timeout' : 'network_error',
-        message: error?.name === 'AbortError'
-          ? 'หมอดูใช้เวลาเปิดตำรานานเกินไป กรุณาถามใหม่อีกครั้ง'
-          : 'เชื่อมต่อห้องปรึกษาไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่'
-      };
-    } finally {
-      clearTimeout(timeout);
     }
+
+    return lastFailure || {
+      success: false,
+      error: 'network_error',
+      message: 'ยังติดต่อหมอดูไม่ได้ กรุณาลองกดถามอีกครั้ง'
+    };
   }
 
   static requestReading(prompt, context, purpose) {
