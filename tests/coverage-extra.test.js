@@ -20,6 +20,9 @@ import { scoreCareer, scoreMoney, scoreLove, scoreHealth, scoreLuck, elementBala
 import { currentDateContext } from '../js/services/question-router.js';
 import { relationBetween } from '../js/views/elements-view.js';
 import { CHINESE_ELEMENTS, THAI_ELEMENTS_GUIDE, WESTERN_ELEMENTS_GUIDE, CLASH_DETAIL } from '../js/data/elements-guide.js';
+import { PhoneNumerologyEngine, PAIR_GROUPS, NEUTRAL_PAIRS, DIGIT_PLANETS, validatePhone, normalizePhone } from '../js/engines/phone-numerology.js';
+import { TaksaEngine } from '../js/engines/thai-taksa.js';
+import { PLANET_NUMBERS } from '../js/engines/life-domains.js';
 
 /** AudioContext จำลองสำหรับรันโค้ดสังเคราะห์เสียงใน Node */
 function createFakeAudioContext() {
@@ -573,5 +576,91 @@ export function runCoverageExtraTests(it) {
       assert.strictEqual(relationBetween(a, b).key, 'controls',
         'คู่ ' + key + ' ที่เขียนคำอธิบายไว้ ต้องเป็นคู่ข่มจริงในตาราง');
     });
+  });
+
+  console.log('\n--- SECTION 32: เลขศาสตร์เบอร์โทร ---');
+
+  it('ตารางคู่เลขไม่ซ้ำกัน และครอบคลุมทุกคู่ยกเว้นคู่ที่มีเลขศูนย์', () => {
+    const seen = new Set();
+    Object.values(PAIR_GROUPS).forEach(g => g.pairs.forEach(pair => {
+      assert.ok(!seen.has(pair), 'คู่ ' + pair + ' ถูกจัดซ้ำสองกลุ่ม');
+      seen.add(pair);
+    }));
+    NEUTRAL_PAIRS.forEach(p => seen.add(p));
+
+    const missing = [];
+    for (let i = 0; i < 100; i++) if (!seen.has(i)) missing.push(String(i).padStart(2, '0'));
+    // ที่เหลือต้องเป็นคู่ที่ขึ้นต้นด้วย 0 เท่านั้น ซึ่งตำราไม่จัดกลุ่ม
+    assert.ok(missing.every(m => m[0] === '0'),
+      'คู่ที่ไม่ได้จัดกลุ่มต้องเป็นคู่ที่มีเลขศูนย์เท่านั้น แต่พบ ' + missing.join(' '));
+    assert.strictEqual(Object.keys(DIGIT_PLANETS).length, 10, 'ต้องมีดาวประจำเลขครบ 0-9');
+  });
+
+  it('ทุกกลุ่มดาวมีคำอธิบายรายด้านครบ', () => {
+    Object.entries(PAIR_GROUPS).forEach(([key, g]) => {
+      ['nameTh', 'shortTh', 'meaningTh', 'workTh', 'moneyTh', 'loveTh'].forEach(f => {
+        assert.ok(g[f] && String(g[f]).length > 5, 'กลุ่ม ' + key + ' ขาดฟิลด์ ' + f);
+      });
+      assert.ok(Array.isArray(g.pairs) && g.pairs.length > 0);
+      assert.ok(['great', 'good', 'mixed', 'bad'].includes(g.tone));
+    });
+  });
+
+  it('ตรวจความถูกต้องของเบอร์และตัดอักขระที่ไม่ใช่ตัวเลข', () => {
+    assert.strictEqual(normalizePhone('081-234-5678'), '0812345678');
+    assert.strictEqual(normalizePhone('(081) 234 5678'), '0812345678');
+    assert.strictEqual(validatePhone('').valid, false);
+    assert.strictEqual(validatePhone('0812').valid, false);
+    assert.strictEqual(validatePhone('08123456789').valid, false);
+    assert.strictEqual(validatePhone('081-234-5678').valid, true);
+  });
+
+  it('วิเคราะห์เบอร์ได้ครบและคะแนนตรงกับปัจจัย', () => {
+    const r = PhoneNumerologyEngine.analyze('0812345678');
+    assert.strictEqual(r.available, true);
+    assert.strictEqual(r.phone, '0812345678');
+    assert.strictEqual(r.pairs.length, 9, 'เบอร์ 10 หลักต้องมีคู่เลข 9 คู่');
+    // 0+8+1+2+3+4+5+6+7+8 = 44
+    const expectedSum = '0812345678'.split('').reduce((a, d) => a + Number(d), 0);
+    assert.strictEqual(r.sum, expectedSum, 'ผลรวมต้องเท่ากับผลบวกทุกหลัก');
+    assert.strictEqual(r.sum, 44);
+    r.pairs.forEach(p => assert.ok(p.group && p.group.nameTh, 'ทุกคู่ต้องมีกลุ่มดาว'));
+    assert.strictEqual(r.pairs.filter(p => p.isLast).length, 1, 'ต้องมีคู่ท้ายเพียงคู่เดียว');
+    assert.ok(r.scoreFactors.length >= 3, 'ต้องบอกที่มาของคะแนนได้');
+    assert.ok(r.score >= 20 && r.score <= 98);
+    assert.ok(r.disclaimerTh.includes('ความเชื่อ'), 'ต้องมีคำเตือนตามความจริง');
+  });
+
+  it('เบอร์ที่มีคู่ดีเยอะต้องได้คะแนนสูงกว่าเบอร์ที่มีคู่เสียเยอะ', () => {
+    const good = PhoneNumerologyEngine.analyze('0824563698');
+    const bad = PhoneNumerologyEngine.analyze('0812345678');
+    assert.ok(good.score > bad.score,
+      'เบอร์คู่ดีควรได้คะแนนสูงกว่า แต่ได้ ' + good.score + ' กับ ' + bad.score);
+    assert.ok(good.goodPairs.length > bad.goodPairs.length);
+  });
+
+  it('เบอร์ที่ผิดรูปแบบต้องบอกเหตุผล ไม่ใช่พังหรือเดา', () => {
+    const r = PhoneNumerologyEngine.analyze('12');
+    assert.strictEqual(r.available, false);
+    assert.ok(r.reasonTh && r.reasonTh.length > 5);
+  });
+
+  it('เทียบเบอร์กับวันเกิดเจ้าของโดยใช้เลขกาลกิณีจากทักษา', () => {
+    const taksa = TaksaEngine.calculate('1996-08-26');
+    const phone = PhoneNumerologyEngine.analyze('0812345678');
+    const match = PhoneNumerologyEngine.matchWithOwner(taksa, phone, PLANET_NUMBERS);
+    assert.ok(match, 'ต้องเทียบได้');
+    assert.ok(Array.isArray(match.goodNumbers) && match.goodNumbers.length >= 3);
+    assert.strictEqual(typeof match.badNumber, 'number');
+    assert.ok(match.verdictTh.length > 20);
+    // เลขกาลกิณีต้องไม่ปนอยู่ในเลขมงคล
+    assert.ok(!match.goodNumbers.includes(match.badNumber),
+      'เลขกาลกิณีต้องไม่อยู่ในรายการเลขมงคล');
+  });
+
+  it('คู่ที่มีเลขศูนย์ต้องบอกตรง ๆ ว่าพลังอ่อน ไม่แต่งความหมายขึ้นเอง', () => {
+    const res = PhoneNumerologyEngine.lookupPair(3);
+    assert.strictEqual(res.isNeutral, true);
+    assert.ok(res.group.meaningTh.includes('ศูนย์'), 'ต้องอธิบายว่าเป็นเพราะเลขศูนย์');
   });
 }

@@ -7,7 +7,41 @@ import { I18n } from '../core/i18n.js';
 import { ToastManager } from './toast.js';
 
 export class NavigationController {
+  static initDropdowns() {
+    const groups = Array.from(document.querySelectorAll('.nav-group'));
+    if (!groups.length) return;
+
+    const closeAll = (except) => {
+      groups.forEach(g => {
+        if (g === except) return;
+        g.classList.remove('is-open');
+        g.querySelector('.nav-group-btn')?.setAttribute('aria-expanded', 'false');
+      });
+    };
+
+    groups.forEach(group => {
+      const btn = group.querySelector('.nav-group-btn');
+      btn?.addEventListener('click', (event) => {
+        event.stopPropagation();
+        const willOpen = !group.classList.contains('is-open');
+        closeAll(group);
+        group.classList.toggle('is-open', willOpen);
+        btn.setAttribute('aria-expanded', String(willOpen));
+      });
+      // เลือกเมนูแล้วปิดกล่องทันที
+      group.querySelectorAll('.nav-dropdown a').forEach(link => {
+        link.addEventListener('click', () => closeAll(null));
+      });
+    });
+
+    document.addEventListener('click', () => closeAll(null));
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeAll(null);
+    });
+  }
+
   static init() {
+    this.initDropdowns();
     this.header = document.querySelector('.site-header');
     this.mobileDrawer = document.getElementById('mobile-nav-drawer');
     this.mobileTrigger = document.getElementById('mobile-menu-trigger');

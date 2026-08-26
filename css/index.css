@@ -1705,3 +1705,82 @@ html:lang(th) h3 {
 @media (max-width: 640px) {
   .element-two { grid-template-columns: 1fr; }
 }
+
+
+/* ==========================================================================
+   GROUPED NAV MENU
+   ========================================================================== */
+.nav-group { position: relative; display: inline-block; }
+.nav-group-btn {
+  background: none; border: none; font: inherit; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.nav-caret { font-size: 9px; opacity: 0.7; transition: transform 0.2s; }
+.nav-group.is-open .nav-caret { transform: rotate(180deg); }
+.nav-dropdown {
+  position: absolute; top: calc(100% + 10px); left: 50%; transform: translateX(-50%) translateY(-6px);
+  min-width: 250px; z-index: 120;
+  background: #171A24; border: 1px solid rgba(197, 160, 89, 0.35);
+  border-radius: 12px; padding: 6px; box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  opacity: 0; visibility: hidden; pointer-events: none; transition: all 0.18s ease;
+}
+.nav-group.is-open .nav-dropdown {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: translateX(-50%) translateY(0);
+}
+.nav-dropdown a {
+  display: block; padding: 9px 12px; border-radius: 8px; text-decoration: none;
+  transition: background 0.15s;
+}
+.nav-dropdown a:hover { background: rgba(197, 160, 89, 0.12); }
+.nav-dropdown a b { display: block; font-size: 13px; color: var(--color-text-primary); font-weight: 600; }
+.nav-dropdown a small { display: block; font-size: 11px; color: var(--color-text-muted); margin-top: 1px; }
+
+.mobile-nav-heading {
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--color-gold-bright); padding: var(--space-4) 0 4px; opacity: 0.85;
+}
+
+/* ==========================================================================
+   PHONE NUMEROLOGY
+   ========================================================================== */
+.pair-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.pair-chip {
+  display: flex; align-items: center; gap: 10px; position: relative;
+  border-radius: 10px; padding: 8px 12px; border: 1px solid;
+}
+.pair-chip.tone-great { background: rgba(72, 187, 120, 0.13); border-color: rgba(72, 187, 120, 0.45); }
+.pair-chip.tone-good { background: rgba(72, 187, 120, 0.07); border-color: rgba(72, 187, 120, 0.28); }
+.pair-chip.tone-mixed { background: rgba(236, 201, 75, 0.09); border-color: rgba(236, 201, 75, 0.35); }
+.pair-chip.tone-neutral { background: rgba(255, 255, 255, 0.04); border-color: rgba(197, 160, 89, 0.16); }
+.pair-chip.tone-bad { background: rgba(229, 62, 62, 0.1); border-color: rgba(229, 62, 62, 0.38); }
+.pair-chip.is-last { outline: 2px solid var(--color-gold-bright); outline-offset: 1px; }
+.pair-num {
+  font-family: var(--font-serif); font-size: 20px; font-weight: 700;
+  color: var(--color-gold-light); min-width: 32px; text-align: center;
+}
+.pair-info { min-width: 0; }
+.pair-info b { display: block; font-size: 12px; color: var(--color-text-primary); }
+.pair-info small { display: block; font-size: 11px; color: var(--color-text-muted); }
+.pair-last-tag {
+  position: absolute; top: -8px; right: 6px; font-size: 9px;
+  background: var(--color-gold-bright); color: #0C0D10;
+  padding: 1px 6px; border-radius: 999px; font-weight: 700;
+}
+.pair-domain-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--space-2); margin-top: var(--space-3);
+}
+.pair-domain-grid > div {
+  background: rgba(12, 13, 16, 0.45); border: var(--border-subtle);
+  border-radius: 8px; padding: var(--space-2) var(--space-3);
+}
+.pair-domain-grid b { font-size: 11px; color: var(--color-gold-bright); }
+.pair-domain-grid p { font-size: 12px; color: var(--color-text-secondary); line-height: 1.6; margin-top: 3px; }
+.domain-section.tone-border-great { border-left: 4px solid #68D391; }
+.domain-section.tone-border-good { border-left: 4px solid rgba(72, 187, 120, 0.5); }
+.domain-section.tone-border-mixed { border-left: 4px solid #ECC94B; }
+.domain-section.tone-border-bad { border-left: 4px solid #FC8181; }
+
+@media (max-width: 900px) {
+  .nav-dropdown { min-width: 210px; }
+}

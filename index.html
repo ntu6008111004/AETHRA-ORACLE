@@ -82,14 +82,42 @@
       <!-- Desktop Navigation Links -->
       <nav class="nav-desktop" aria-label="เมนูหลัก">
         <a href="#home" class="nav-link is-active" data-i18n="nav_home">หน้าหลัก</a>
-        <a href="#reading" class="nav-link nav-link-highlight">ดูดวงของฉัน</a>
-        <a href="#match" class="nav-link">ดวงสมพงศ์</a>
-        <a href="#elements" class="nav-link">คู่มือธาตุ</a>
-        <a href="#traditions" class="nav-link" data-i18n="nav_traditions">ศาสตร์พยากรณ์</a>
-        <a href="#tarot" class="nav-link" data-i18n="nav_tarot">ไพ่ทาโรต์</a>
-        <a href="#iching" class="nav-link" data-i18n="nav_iching">อี้จิง</a>
-        <a href="#unified" class="nav-link" data-i18n="nav_unified">อ่านดวงแบบองค์รวม</a>
-        <a href="#consultation" class="nav-link" data-i18n="nav_consultation">ห้องปรึกษา</a>
+
+        <div class="nav-group">
+          <button type="button" class="nav-link nav-group-btn" aria-expanded="false" aria-haspopup="true">
+            ดูดวงของฉัน <span class="nav-caret">▾</span>
+          </button>
+          <div class="nav-dropdown" role="menu">
+            <a href="#reading" role="menuitem"><b>🔮 ดูดวงครบทุกด้าน</b><small>งาน เงิน รัก สุขภาพ โชค</small></a>
+            <a href="#traditions" role="menuitem"><b>📜 ผังดวงละเอียด</b><small>ทักษา ดวงจีน เลขศาสตร์</small></a>
+            <a href="#unified" role="menuitem"><b>🧭 บทสรุปองค์รวม</b><small>อ่านทีละเรื่องจากทุกศาสตร์</small></a>
+            <a href="#profile" role="menuitem"><b>⚙️ แก้ไขข้อมูลเกิด</b><small>วันเกิด เวลา สถานที่</small></a>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-link nav-group-btn" aria-expanded="false" aria-haspopup="true">
+            ความรักและคนอื่น <span class="nav-caret">▾</span>
+          </button>
+          <div class="nav-dropdown" role="menu">
+            <a href="#match" role="menuitem"><b>💞 ดวงสมพงศ์</b><small>เช็คคู่ หาเนื้อคู่</small></a>
+            <a href="#other" role="menuitem"><b>👥 ดูดวงคนอื่น</b><small>กรอกชื่อ เบอร์ วันเกิดของเขา</small></a>
+          </div>
+        </div>
+
+        <div class="nav-group">
+          <button type="button" class="nav-link nav-group-btn" aria-expanded="false" aria-haspopup="true">
+            เสี่ยงทายและเครื่องมือ <span class="nav-caret">▾</span>
+          </button>
+          <div class="nav-dropdown" role="menu">
+            <a href="#tarot" role="menuitem"><b>🃏 ไพ่ทาโรต์</b><small>เปิดไพ่ 3 ใบ</small></a>
+            <a href="#iching" role="menuitem"><b>☯️ อี้จิง</b><small>โยนเหรียญเสี่ยงทาย</small></a>
+            <a href="#phone" role="menuitem"><b>📱 ดูดวงเบอร์มือถือ</b><small>เลขศาสตร์เบอร์โทร</small></a>
+            <a href="#elements" role="menuitem"><b>📖 คู่มือธาตุ</b><small>ธาตุไหนหนุน ธาตุไหนขัด</small></a>
+          </div>
+        </div>
+
+        <a href="#consultation" class="nav-link nav-link-highlight" data-i18n="nav_consultation">ห้องปรึกษา</a>
       </nav>
 
       <!-- Header Utilities (Lang, Sound, Profile, Mobile Menu) -->
@@ -137,15 +165,25 @@
 
     <ul class="mobile-nav-links">
       <li><a href="#home" class="mobile-nav-link" data-i18n="nav_home">หน้าหลัก</a></li>
-      <li><a href="#reading" class="mobile-nav-link">ดูดวงของฉัน (ครบทุกศาสตร์)</a></li>
-      <li><a href="#match" class="mobile-nav-link">ดวงสมพงศ์ / เนื้อคู่</a></li>
-      <li><a href="#elements" class="mobile-nav-link">คู่มือธาตุ / ธาตุไหนขัดกัน</a></li>
-      <li><a href="#traditions" class="mobile-nav-link" data-i18n="nav_traditions">ศาสตร์พยากรณ์</a></li>
-      <li><a href="#tarot" class="mobile-nav-link" data-i18n="nav_tarot">ไพ่ทาโรต์</a></li>
-      <li><a href="#iching" class="mobile-nav-link" data-i18n="nav_iching">อี้จิง</a></li>
-      <li><a href="#unified" class="mobile-nav-link" data-i18n="nav_unified">อ่านดวงแบบองค์รวม</a></li>
-      <li><a href="#consultation" class="mobile-nav-link" data-i18n="nav_consultation">ห้องปรึกษา</a></li>
-      <li><a href="#profile" class="mobile-nav-link" data-i18n="nav_profile">ผังดวงส่วนตัว</a></li>
+
+      <li class="mobile-nav-heading">ดูดวงของฉัน</li>
+      <li><a href="#reading" class="mobile-nav-link">🔮 ดูดวงครบทุกด้าน</a></li>
+      <li><a href="#traditions" class="mobile-nav-link">📜 ผังดวงละเอียด</a></li>
+      <li><a href="#unified" class="mobile-nav-link">🧭 บทสรุปองค์รวม</a></li>
+
+      <li class="mobile-nav-heading">ความรักและคนอื่น</li>
+      <li><a href="#match" class="mobile-nav-link">💞 ดวงสมพงศ์ / เนื้อคู่</a></li>
+      <li><a href="#other" class="mobile-nav-link">👥 ดูดวงคนอื่น</a></li>
+
+      <li class="mobile-nav-heading">เสี่ยงทายและเครื่องมือ</li>
+      <li><a href="#tarot" class="mobile-nav-link">🃏 ไพ่ทาโรต์</a></li>
+      <li><a href="#iching" class="mobile-nav-link">☯️ อี้จิง</a></li>
+      <li><a href="#phone" class="mobile-nav-link">📱 ดูดวงเบอร์มือถือ</a></li>
+      <li><a href="#elements" class="mobile-nav-link">📖 คู่มือธาตุ</a></li>
+
+      <li class="mobile-nav-heading">อื่น ๆ</li>
+      <li><a href="#consultation" class="mobile-nav-link">💬 ห้องปรึกษา</a></li>
+      <li><a href="#profile" class="mobile-nav-link">⚙️ ข้อมูลเกิดของฉัน</a></li>
     </ul>
 
     <div class="mobile-nav-footer">
@@ -370,6 +408,8 @@
             <li><a href="#reading" class="footer-link">ดูดวงของฉัน (ครบทุกศาสตร์)</a></li>
             <li><a href="#match" class="footer-link">ดวงสมพงศ์ / เช็คเนื้อคู่</a></li>
             <li><a href="#elements" class="footer-link">คู่มือธาตุ ธาตุไหนขัดกัน</a></li>
+            <li><a href="#phone" class="footer-link">ดูดวงเบอร์มือถือ</a></li>
+            <li><a href="#other" class="footer-link">ดูดวงคนอื่น</a></li>
             <li><a href="#traditions" class="footer-link">โหราศาสตร์สากล (12 ราศี)</a></li>
             <li><a href="#traditions" class="footer-link">โหราศาสตร์ไทย (สุริยยาตร์)</a></li>
             <li><a href="#traditions" class="footer-link">โหราศาสตร์พระเวท (นวางศ์จักร)</a></li>

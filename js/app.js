@@ -21,6 +21,8 @@ import { ProfileView } from './views/profile.js';
 import { ReadingView } from './views/reading-view.js';
 import { MatchView } from './views/match-view.js';
 import { ElementsView } from './views/elements-view.js';
+import { PhoneView } from './views/phone-view.js';
+import { OtherView } from './views/other-view.js';
 
 class AethraApp {
   constructor() {
@@ -159,6 +161,14 @@ class AethraApp {
 
       case 'elements':
         ElementsView.render(this.appRoot);
+        break;
+
+      case 'phone':
+        PhoneView.render(this.appRoot);
+        break;
+
+      case 'other':
+        OtherView.render(this.appRoot);
         break;
 
       case 'traditions':
