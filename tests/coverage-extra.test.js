@@ -21,6 +21,7 @@ import { currentDateContext } from '../js/services/question-router.js';
 import { relationBetween } from '../js/views/elements-view.js';
 import { CHINESE_ELEMENTS, THAI_ELEMENTS_GUIDE, WESTERN_ELEMENTS_GUIDE, CLASH_DETAIL } from '../js/data/elements-guide.js';
 import { PhoneNumerologyEngine, PAIR_GROUPS, NEUTRAL_PAIRS, DIGIT_PLANETS, validatePhone, normalizePhone } from '../js/engines/phone-numerology.js';
+import { MAINSTREAM_PAIRS } from '../js/data/pair-meanings.js';
 import { PLANET_POWER, TOTAL_POWER, luckyNumbersFromPower } from '../js/data/maha-thaksa.js';
 import { TaksaEngine } from '../js/engines/thai-taksa.js';
 import { PLANET_NUMBERS } from '../js/engines/life-domains.js';
@@ -635,21 +636,52 @@ export function runCoverageExtraTests(it) {
     assert.ok(r.disclaimerTh.includes('ความเชื่อ'), 'ต้องมีคำเตือนตามความจริง');
   });
 
-  it('ระดับที่ได้ต้องตรงกับเกณฑ์ที่ประกาศไว้ ตรวจสอบตามได้', () => {
+  it('ตารางสายเบอร์มงคลครบ 100 คู่ และทุกคู่มีความหมายกับระดับ', () => {
+    for (let i = 0; i < 100; i++) {
+      const pair = MAINSTREAM_PAIRS[i];
+      assert.ok(pair, 'ขาดคู่ ' + String(i).padStart(2, '0'));
+      assert.ok(['ดี', 'กลาง', 'เสีย'].includes(pair.tone), 'คู่ ' + i + ' ระดับไม่ถูกต้อง');
+      assert.ok(pair.m && pair.m.length > 10, 'คู่ ' + i + ' ความหมายสั้นเกินไป');
+      assert.ok(Array.isArray(pair.tags));
+    }
+    // คู่สลับหลักต้องมีความหมายเดียวกันตามตำรา เช่น 15 กับ 51
+    [[15, 51], [24, 42], [59, 95], [79, 97]].forEach(([a, b]) => {
+      assert.strictEqual(MAINSTREAM_PAIRS[a].m, MAINSTREAM_PAIRS[b].m,
+        'คู่ ' + a + ' กับ ' + b + ' ต้องมีความหมายเดียวกัน');
+    });
+  });
+
+  it('ระดับที่ได้ต้องตรงกับเกณฑ์สายเบอร์มงคลที่ประกาศไว้', () => {
     const rank = { avoid: 0, careful: 1, neutral: 2, good: 3, great: 4 };
     const many = PhoneNumerologyEngine.analyze('0899999999');
-    const few = PhoneNumerologyEngine.analyze('0812345678');
+    const few = PhoneNumerologyEngine.analyze('0813133737');
     assert.ok(many.goodPairs.length > few.goodPairs.length);
     assert.ok(rank[many.grade] > rank[few.grade],
       'เบอร์คู่ดีเยอะควรได้ระดับดีกว่า แต่ได้ ' + many.gradeTh + ' กับ ' + few.gradeTh);
 
-    // คู่ท้ายอยู่กลุ่มเสีย ต้องถูกลดระดับตามกฎที่ประกาศไว้
-    const lastBad = PhoneNumerologyEngine.analyze('0824563698');
-    if (lastBad.pairs[lastBad.pairs.length - 1].group.tone === 'bad') {
-      assert.ok(['careful', 'avoid'].includes(lastBad.grade),
-        'คู่ท้ายอยู่กลุ่มเสีย ต้องได้ระดับควรระวังตามกฎ');
-      assert.ok(lastBad.gradeReasonTh.includes('คู่ท้าย'));
-    }
+    // คู่ท้ายเป็นคู่เสียตามสายหลัก ต้องถูกลดระดับตามกฎ
+    const lastBad = PhoneNumerologyEngine.analyze('0824456613');
+    const lastPair = lastBad.pairs[lastBad.pairs.length - 1];
+    assert.strictEqual(lastPair.mainstream.tone, 'เสีย', 'คู่ 13 ต้องเป็นคู่เสียตามตาราง');
+    assert.ok(['careful', 'avoid'].includes(lastBad.grade),
+      'คู่ท้ายเป็นคู่เสีย ต้องได้ระดับควรระวังตามกฎ แต่ได้ ' + lastBad.gradeTh);
+    assert.ok(lastBad.gradeReasonTh.includes('คู่ท้าย'));
+  });
+
+  it('เบอร์ที่เว็บเบอร์มงคลถือว่าดี ต้องได้ผลดีที่นี่ด้วย (เคสจริงของผู้ใช้)', () => {
+    // 082-619-7995 เคยได้ควรระวังจากสายกลุ่มดาว ทั้งที่วงการเบอร์มงคลถือว่าดีมาก
+    const r = PhoneNumerologyEngine.analyze('0826197995');
+    assert.ok(['great', 'good'].includes(r.grade),
+      'เบอร์นี้ต้องได้ระดับดีตามสายเบอร์มงคล แต่ได้ ' + r.gradeTh);
+    assert.ok(r.goodPairs.length >= 6, 'ต้องพบคู่ดีอย่างน้อย 6 คู่');
+    // คู่ 95 ท้ายเบอร์ สายหลักต้องอ่านว่าดี
+    const last = r.pairs[r.pairs.length - 1];
+    assert.strictEqual(last.text, '95');
+    assert.strictEqual(last.mainstream.tone, 'ดี');
+    // และต้องรายงานตรง ๆ ว่าสองสายอ่านคู่นี้ไม่ตรงกัน
+    assert.ok(r.disagreedPairs.some(p => p.text === '95'),
+      'ต้องแจ้งผู้ใช้ว่าคู่ 95 สองสายอ่านต่างกัน');
+    assert.ok(r.supports.length >= 2, 'ต้องสรุปได้ว่าส่งเสริมด้านไหนบ้าง');
   });
 
   it('กำลังพระเคราะห์ตามคัมภีร์มหาทักษารวมกันได้ 108 พอดี', () => {

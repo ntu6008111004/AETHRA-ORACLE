@@ -27,10 +27,11 @@ export class PhoneView {
         <section class="identity-card">
           <div class="identity-head">
             <div>
-              <div class="identity-eyebrow">📱 เลขศาสตร์เบอร์โทร</div>
-              <h1 class="identity-name">ดูดวงเบอร์มือถือ</h1>
-              <p class="identity-sub">วิเคราะห์ผลรวมเบอร์และคู่เลขทุกคู่ตามตำราเลขศาสตร์ไทย
-              บอกว่าเบอร์นี้ส่งเสริมเรื่องอะไร และต้องระวังเรื่องไหน</p>
+              <div class="identity-eyebrow">📱 เบอร์มงคลส่งเสริม</div>
+              <h1 class="identity-name">เช็คเบอร์มงคลส่งเสริม</h1>
+              <p class="identity-sub">อ่านคู่เลขทุกคู่ตามตารางเบอร์มงคลสายตำรา อ.พลูหลวง
+              ซึ่งเป็นสายเดียวกับที่วงการเบอร์มงคลใช้ บอกว่าเบอร์นี้ส่งเสริมด้านไหน
+              และมีคู่ไหนที่ต้องรู้ไว้</p>
             </div>
           </div>
 
@@ -181,6 +182,38 @@ export class PhoneView {
         </details>
 
         <div class="domain-sections" style="text-align:left;">
+          ${r.supports.length ? `
+          <article class="domain-section tone-border-great">
+            <h3>🌟 เบอร์นี้ส่งเสริมด้านไหนบ้าง</h3>
+            <div class="support-grid">
+              ${r.supports.map(t => `
+                <div class="support-chip">
+                  <span class="support-emoji">${t.emoji}</span>
+                  <b>${esc(t.labelTh)}</b>
+                  <small>จากคู่ดี ${t.count} คู่</small>
+                </div>`).join('')}
+            </div>
+            <div class="source-badge">มาจาก: ${esc(r.primarySourceTh)}</div>
+          </article>` : ''}
+
+          ${r.disagreedPairs.length ? `
+          <article class="domain-section tone-border-mixed">
+            <h3>⚖️ คู่ที่ตำราสองสายอ่านไม่ตรงกัน (${r.disagreedPairs.length} คู่)</h3>
+            <p>นี่คือเหตุผลที่เบอร์เดียวกันเช็คแต่ละเว็บแล้วได้ผลต่างกัน
+            เว็บนี้ใช้สายเบอร์มงคลเป็นหลัก แต่แสดงอีกสายให้เห็นตรง ๆ</p>
+            <div class="disagree-list">
+              ${r.disagreedPairs.map(p => `
+                <div class="disagree-item">
+                  <span class="pair-num">${esc(p.text)}</span>
+                  <div>
+                    <p class="ds-main">สายเบอร์มงคล (ที่เว็บนี้ใช้): <b>${esc(p.mainstream.tone)}</b> — ${esc(p.mainstream.m)}</p>
+                    <p class="ds-alt">สายกลุ่มดาวนพเคราะห์: <b>${esc(p.group.nameTh)}</b> — ${esc(p.group.shortTh)}</p>
+                  </div>
+                </div>`).join('')}
+            </div>
+            <div class="source-badge">ทั้งสองสายเป็นตำราจริงที่เผยแพร่อยู่ ไม่มีสายไหนผิด แค่คนละตำรา</div>
+          </article>` : ''}
+
           <article class="domain-section">
             <h3>🧮 ผลรวมเบอร์ = ${r.sum}</h3>
             <p><b>${esc(r.sumInfo.titleTh)}</b> — ${esc(r.sumInfo.descTh)}</p>
@@ -192,15 +225,19 @@ export class PhoneView {
             <p style="margin-bottom: var(--space-3);">ตำราอ่านเลขสองตัวที่ติดกัน แต่ละคู่มีดาวประจำต่างกัน
             คู่ท้ายสุดถือว่าส่งผลแรงที่สุด</p>
             <div class="pair-grid">
-              ${r.pairs.map(p => `
-                <div class="pair-chip tone-${p.group.tone}${p.isLast ? ' is-last' : ''}">
+              ${r.pairs.map(p => {
+                const toneClass = p.mainstream.tone === 'ดี' ? 'tone-great'
+                  : p.mainstream.tone === 'เสีย' ? 'tone-bad' : 'tone-neutral';
+                return `
+                <div class="pair-chip ${toneClass}${p.isLast ? ' is-last' : ''}">
                   <span class="pair-num">${esc(p.text)}</span>
                   <span class="pair-info">
-                    <b>${p.group.emoji} ${esc(p.group.nameTh)}</b>
-                    <small>${esc(p.group.shortTh)}</small>
+                    <b>${p.mainstream.tone === 'ดี' ? '✅' : p.mainstream.tone === 'เสีย' ? '⚠️' : '⚪'} ${esc(p.mainstream.tone)}</b>
+                    <small>${esc(p.mainstream.m)}</small>
                   </span>
                   ${p.isLast ? '<span class="pair-last-tag">คู่ท้าย</span>' : ''}
-                </div>`).join('')}
+                </div>`;
+              }).join('')}
             </div>
           </article>
 
@@ -273,6 +310,7 @@ export class PhoneView {
       </section>`;
   }
 
+  /** สายรอง แสดงเป็นข้อมูลเทียบเท่านั้น */
   static renderGroupDetail(r) {
     // แสดงรายละเอียดเฉพาะกลุ่มที่พบในเบอร์นี้ เรียงจากดีไปแย่
     const seen = new Map();
@@ -286,8 +324,10 @@ export class PhoneView {
     const order = { great: 0, good: 1, mixed: 2, bad: 3 };
     const groups = [...seen.values()].sort((a, b) => order[a.group.tone] - order[b.group.tone]);
 
-    return groups.map(({ group, pairs }) => `
-      <article class="domain-section tone-border-${group.tone}">
+    return `<details class="method-box" style="text-align:left;">
+      <summary>🔭 มุมมองสายกลุ่มดาวนพเคราะห์ (สายรอง ไว้เทียบ)</summary>
+      <div class="method-body">` + groups.map(({ group, pairs }) => `
+      <article class="domain-section tone-border-${group.tone}" style="margin-bottom:var(--space-3);">
         <h3>${group.emoji} ${esc(group.nameTh)} — พบในคู่ ${esc(pairs.join(' '))}</h3>
         <p>${esc(group.meaningTh)}</p>
         <div class="pair-domain-grid">
@@ -296,7 +336,7 @@ export class PhoneView {
           <div><b>💗 ความรัก</b><p>${esc(group.loveTh)}</p></div>
         </div>
         <div class="source-badge">มาจาก: กลุ่มดาวของคู่เลขตามระบบนพเคราะห์ในเลขศาสตร์ไทย</div>
-      </article>`).join('');
+      </article>`).join('') + `</div></details>`;
   }
 
   static bindResultEvents(box, r, ownerMatch) {

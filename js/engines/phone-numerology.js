@@ -16,6 +16,8 @@
  * ระบบนี้จึงระบุตรง ๆ ว่าเป็นคู่ที่ไม่มีพลังเด่น ไม่แต่งความหมายขึ้นมาเอง
  */
 
+import { MAINSTREAM_PAIRS, TAG_LABELS, PAIR_SOURCE_TH } from '../data/pair-meanings.js';
+
 /** ดาวประจำเลขแต่ละตัวตามเลขศาสตร์ไทย */
 export const DIGIT_PLANETS = {
   0: { planetTh: 'ไม่มีดาวประจำ', meaningTh: 'เลขว่าง ทำให้พลังของเลขที่อยู่ติดกันอ่อนลง' },
@@ -213,25 +215,43 @@ export class PhoneNumerologyEngine {
     for (let i = 0; i < nums.length - 1; i++) {
       const value = nums[i] * 10 + nums[i + 1];
       const { group, isNeutral } = this.lookupPair(value);
+      const mainstream = MAINSTREAM_PAIRS[value] || { tone: 'กลาง', m: 'ตำราไม่ได้ระบุความหมายคู่นี้', tags: [] };
       pairs.push({
         position: i + 1,
         text: String(nums[i]) + String(nums[i + 1]),
         value,
+        // สายหลัก: ตารางความหมายรายคู่ของวงการเบอร์มงคล (ตำรา อ.พลูหลวง)
+        mainstream,
+        // สายรอง: ตารางกลุ่มดาว 8 กลุ่ม เก็บไว้เทียบ
         group,
         isNeutral,
+        // สองสายอ่านคู่นี้ตรงกันหรือไม่ ใช้แสดงความจริงให้ผู้ใช้เห็น
+        schoolsAgree: !((mainstream.tone === 'ดี' && group.tone === 'bad')
+          || (mainstream.tone === 'เสีย' && (group.tone === 'great' || group.tone === 'good'))),
         isLast: i === nums.length - 2
       });
     }
 
-    // 3) นับกลุ่มดาวที่พบ
+    // 3) นับตามสายหลัก (ตารางเบอร์มงคลรายคู่)
     const tally = {};
     pairs.forEach(p => {
       tally[p.group.id] = (tally[p.group.id] || 0) + 1;
     });
 
-    const goodPairs = pairs.filter(p => p.group.tone === 'great' || p.group.tone === 'good');
-    const badPairs = pairs.filter(p => p.group.tone === 'bad');
-    const mixedPairs = pairs.filter(p => p.group.tone === 'mixed');
+    const goodPairs = pairs.filter(p => p.mainstream.tone === 'ดี');
+    const badPairs = pairs.filter(p => p.mainstream.tone === 'เสีย');
+    const mixedPairs = pairs.filter(p => p.mainstream.tone === 'กลาง');
+    const disagreedPairs = pairs.filter(p => !p.schoolsAgree);
+
+    // สรุปว่าเบอร์นี้ส่งเสริมด้านไหน จากป้ายของคู่ที่ดี
+    const supportTally = {};
+    goodPairs.forEach(p => p.mainstream.tags.forEach(tag => {
+      supportTally[tag] = (supportTally[tag] || 0) + 1;
+    }));
+    const supports = Object.entries(supportTally)
+      .sort((a, b) => b[1] - a[1])
+      .map(([tag, count]) => ({ tag, count, ...TAG_LABELS[tag] }))
+      .filter(t => t.labelTh);
 
     // 4) สรุปผลจากตารางล้วน ไม่ใช้คะแนนที่คิดขึ้นเอง
     //
@@ -240,52 +260,51 @@ export class PhoneNumerologyEngine {
     // ผู้ใช้จึงตรวจสอบตามได้เองว่าทำไมถึงได้ผลแบบนี้
 
     const lastPair = pairs[pairs.length - 1];
+    const lastGoodMain = lastPair && lastPair.mainstream.tone === 'ดี';
+    const lastBadMain = lastPair && lastPair.mainstream.tone === 'เสีย';
     const sumIsGood = sumInfo.tone === 'great' || sumInfo.tone === 'good';
     const sumIsBad = sumInfo.tone === 'bad';
-    const lastIsGood = lastPair && (lastPair.group.tone === 'great' || lastPair.group.tone === 'good');
-    const lastIsBad = lastPair && lastPair.group.tone === 'bad';
 
-    // กฎการตัดสิน เขียนไว้ให้อ่านได้ ไม่ใช่สูตรลับ
+    // เกณฑ์การตัดสิน อิงตารางสายเบอร์มงคลเป็นหลัก เปิดเผยทุกข้อ
     const ruleTh = [
-      'ดีมาก: ผลรวมอยู่ในรายการมงคล และคู่ท้ายอยู่กลุ่มดาวดี และคู่ดีมากกว่าคู่เสีย',
-      'ดี: คู่ดีมากกว่าคู่เสีย และคู่ท้ายไม่ได้อยู่กลุ่มดาวเสีย',
+      'ส่งเสริมดีมาก: คู่ดีมากกว่าคู่เสียชัดเจน และคู่ท้ายเป็นคู่ดี',
+      'ส่งเสริมดี: คู่ดีมากกว่าคู่เสีย และคู่ท้ายไม่ใช่คู่เสีย',
       'กลาง: จำนวนคู่ดีกับคู่เสียใกล้เคียงกัน',
-      'ควรระวัง: คู่เสียมากกว่าคู่ดี หรือคู่ท้ายอยู่กลุ่มดาวเสีย',
-      'ตำราแนะนำให้เลี่ยง: ผลรวมอยู่ในรายการที่ตำราเตือน และคู่เสียมากกว่าคู่ดี'
+      'ควรระวัง: คู่เสียมากกว่าคู่ดี หรือคู่ท้ายเป็นคู่เสีย',
+      'ตำราแนะนำให้เลี่ยง: คู่เสียมากกว่าคู่ดีชัดเจน และคู่ท้ายเป็นคู่เสีย'
     ];
 
     let gradeKey;
     let gradeTh;
     let gradeReasonTh;
 
-    if (sumIsBad && badPairs.length > goodPairs.length) {
+    if (badPairs.length > goodPairs.length + 1 && lastBadMain) {
       gradeKey = 'avoid';
       gradeTh = 'ตำราแนะนำให้เลี่ยง';
-      gradeReasonTh = 'ผลรวม ' + sum + ' อยู่ในรายการที่ตำราเตือน และมีคู่เสีย '
-        + badPairs.length + ' คู่ ซึ่งมากกว่าคู่ดี ' + goodPairs.length + ' คู่';
-    } else if (badPairs.length > goodPairs.length || lastIsBad) {
+      gradeReasonTh = 'มีคู่เสีย ' + badPairs.length + ' คู่ มากกว่าคู่ดี ' + goodPairs.length
+        + ' คู่ชัดเจน และคู่ท้าย ' + lastPair.text + ' เป็นคู่เสีย (' + lastPair.mainstream.m + ')';
+    } else if (badPairs.length > goodPairs.length || lastBadMain) {
       gradeKey = 'careful';
       gradeTh = 'ควรระวัง';
-      gradeReasonTh = lastIsBad
-        ? 'คู่ท้ายเบอร์คือ ' + lastPair.text + ' ซึ่งอยู่กลุ่ม' + lastPair.group.nameTh
-          + ' ตำราถือว่าคู่ท้ายส่งผลแรงที่สุด'
+      gradeReasonTh = lastBadMain
+        ? 'คู่ท้ายเบอร์คือ ' + lastPair.text + ' ซึ่งตำราให้ความหมายว่า ' + lastPair.mainstream.m
+          + ' และตำราถือว่าคู่ท้ายส่งผลแรงที่สุด'
         : 'มีคู่เสีย ' + badPairs.length + ' คู่ มากกว่าคู่ดี ' + goodPairs.length + ' คู่';
-    } else if (sumIsGood && lastIsGood && goodPairs.length > badPairs.length) {
+    } else if (goodPairs.length >= badPairs.length + 3 && lastGoodMain) {
       gradeKey = 'great';
-      gradeTh = 'ดีมาก';
-      gradeReasonTh = 'ผลรวม ' + sum + ' อยู่ในรายการมงคล คู่ท้าย ' + lastPair.text
-        + ' อยู่กลุ่ม' + lastPair.group.nameTh + ' และมีคู่ดี ' + goodPairs.length
-        + ' คู่ มากกว่าคู่เสีย ' + badPairs.length + ' คู่';
-    } else if (goodPairs.length > badPairs.length && !lastIsBad) {
+      gradeTh = 'ส่งเสริมดีมาก';
+      gradeReasonTh = 'มีคู่ดีถึง ' + goodPairs.length + ' คู่ เทียบกับคู่เสียเพียง ' + badPairs.length
+        + ' คู่ และคู่ท้าย ' + lastPair.text + ' เป็นคู่ดี (' + lastPair.mainstream.m + ')';
+    } else if (goodPairs.length > badPairs.length && !lastBadMain) {
       gradeKey = 'good';
-      gradeTh = 'ดี';
-      gradeReasonTh = 'มีคู่ดี ' + goodPairs.length + ' คู่ มากกว่าคู่เสีย '
-        + badPairs.length + ' คู่ และคู่ท้ายไม่ได้อยู่กลุ่มดาวเสีย';
+      gradeTh = 'ส่งเสริมดี';
+      gradeReasonTh = 'มีคู่ดี ' + goodPairs.length + ' คู่ มากกว่าคู่เสีย ' + badPairs.length
+        + ' คู่ และคู่ท้ายไม่ใช่คู่เสีย';
     } else {
       gradeKey = 'neutral';
       gradeTh = 'กลาง';
-      gradeReasonTh = 'จำนวนคู่ดี ' + goodPairs.length + ' คู่ กับคู่เสีย '
-        + badPairs.length + ' คู่ ใกล้เคียงกัน ตำราจึงไม่ถือว่าเด่นหรือเสียชัดเจน';
+      gradeReasonTh = 'จำนวนคู่ดี ' + goodPairs.length + ' คู่ กับคู่เสีย ' + badPairs.length
+        + ' คู่ ใกล้เคียงกัน ตำราจึงไม่ถือว่าเด่นหรือเสียชัดเจน';
     }
 
     return {
@@ -305,6 +324,9 @@ export class PhoneNumerologyEngine {
       gradeTh,
       gradeReasonTh,
       gradeRuleTh: ruleTh,
+      supports,
+      disagreedPairs,
+      primarySourceTh: PAIR_SOURCE_TH,
       // ขั้นตอนการคำนวณจริงของเบอร์นี้ ใช้แสดงให้ผู้ใช้ตรวจสอบได้เอง
       calcStepsTh: [
         'เบอร์ที่กรอก: ' + digits + ' (' + digits.length + ' หลัก)',
@@ -316,7 +338,7 @@ export class PhoneNumerologyEngine {
         'คู่ที่อยู่กลุ่มดาวเสีย ' + badPairs.length + ' คู่'
           + (badPairs.length ? ' (' + badPairs.map(p => p.text).join(' ') + ')' : ''),
         'คู่ท้ายสุดคือ ' + (lastPair ? lastPair.text + ' อยู่กลุ่ม ' + lastPair.group.nameTh : 'ไม่มี')
-          + ' ให้น้ำหนักพิเศษเพราะตำราถือว่าส่งผลแรงที่สุด',
+          + ' ตำราถือว่าคู่ท้ายส่งผลแรงที่สุด',
         'สรุปตามเกณฑ์: ' + gradeTh + ' เพราะ' + gradeReasonTh
       ],
       verdictTh: gradeTh,

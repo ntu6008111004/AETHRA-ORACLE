@@ -1950,3 +1950,25 @@ html:lang(th) h3 {
   .refresh-tip { margin: var(--space-2) var(--space-3) 0; font-size: 11px; }
   .refresh-tip-mac { display: none; }
 }
+
+
+/* --- เบอร์มงคลส่งเสริม: ด้านที่ส่งเสริม + สองสายอ่านต่าง --- */
+.support-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 8px; margin: var(--space-3) 0; }
+.support-chip {
+  background: rgba(72, 187, 120, 0.08); border: 1px solid rgba(72, 187, 120, 0.3);
+  border-radius: 10px; padding: 10px; text-align: center;
+}
+.support-emoji { font-size: 20px; display: block; }
+.support-chip b { display: block; font-size: 12px; color: var(--color-text-primary); margin-top: 3px; }
+.support-chip small { display: block; font-size: 10px; color: var(--color-text-muted); margin-top: 1px; }
+.disagree-list { display: grid; gap: 8px; margin: var(--space-3) 0; }
+.disagree-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  background: rgba(236, 201, 75, 0.06); border: 1px solid rgba(236, 201, 75, 0.3);
+  border-radius: 10px; padding: 10px 12px;
+}
+.disagree-item .pair-num { margin-top: 2px; }
+.disagree-item p { font-size: 12px; line-height: 1.6; margin-bottom: 3px; }
+.disagree-item .ds-main { color: var(--color-text-primary); }
+.disagree-item .ds-main b { color: #68D391; }
+.disagree-item .ds-alt { color: var(--color-text-muted); }
