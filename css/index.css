@@ -1874,3 +1874,79 @@ html:lang(th) h3 {
   padding-left: 14px; position: relative;
 }
 .confidence-item li::before { content: "\2022"; position: absolute; left: 3px; opacity: 0.6; }
+
+
+/* --- ป้ายระดับแทนคะแนนที่คิดเอง --- */
+.grade-badge {
+  display: inline-flex; flex-direction: column; align-items: center;
+  padding: var(--space-4) var(--space-6); border-radius: 14px;
+  border: 2px solid; margin-bottom: var(--space-3);
+}
+.grade-badge.grade-great { border-color: #68D391; background: rgba(72, 187, 120, 0.12); }
+.grade-badge.grade-good { border-color: rgba(72, 187, 120, 0.6); background: rgba(72, 187, 120, 0.07); }
+.grade-badge.grade-neutral { border-color: var(--color-gold-primary); background: rgba(197, 160, 89, 0.09); }
+.grade-badge.grade-careful { border-color: #ECC94B; background: rgba(236, 201, 75, 0.09); }
+.grade-badge.grade-avoid { border-color: #FC8181; background: rgba(229, 62, 62, 0.09); }
+.grade-label { font-size: 10px; letter-spacing: 0.14em; color: var(--color-text-muted); text-transform: uppercase; }
+.grade-value { font-family: var(--font-serif); font-size: 1.7rem; margin-top: 2px; color: var(--color-text-primary); }
+.grade-badge.grade-great .grade-value { color: #68D391; }
+.grade-badge.grade-careful .grade-value { color: #ECC94B; }
+.grade-badge.grade-avoid .grade-value { color: #FC8181; }
+.grade-reason {
+  font-size: var(--font-size-sm); color: var(--color-text-secondary);
+  line-height: 1.75; margin-bottom: var(--space-5); max-width: 620px;
+  margin-left: auto; margin-right: auto;
+}
+.grade-rule-list { list-style: none; display: grid; gap: 5px; }
+.grade-rule-list li {
+  font-size: 12px; color: var(--color-text-secondary); line-height: 1.65;
+  padding-left: 16px; position: relative;
+}
+.grade-rule-list li::before { content: "\2022"; position: absolute; left: 4px; color: var(--color-gold-bright); }
+
+/* --- ตารางกำลังวัน --- */
+.power-table {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 6px; margin: var(--space-3) 0;
+}
+.power-cell {
+  background: rgba(12, 13, 16, 0.5); border: 1px solid rgba(197, 160, 89, 0.18);
+  border-radius: 8px; padding: 8px; text-align: center;
+}
+.power-cell b { display: block; font-size: 11px; color: var(--color-text-muted); }
+.power-cell span {
+  display: block; font-family: var(--font-serif); font-size: 1.3rem;
+  color: var(--color-gold-light); margin-top: 2px;
+}
+.power-cell.is-mine { border-color: var(--color-gold-bright); background: rgba(197, 160, 89, 0.12); }
+.power-cell.is-mine b { color: var(--color-gold-bright); }
+.power-cell.is-total { border-style: dashed; border-color: rgba(72, 187, 120, 0.5); background: rgba(72, 187, 120, 0.07); }
+.power-cell.is-total span { color: #68D391; }
+.power-note { font-size: 11px; color: var(--color-text-muted); line-height: 1.65; }
+
+
+/* --- แถบแนะนำวิธีรีเฟรชเมื่อหน้าเว็บเพี้ยน --- */
+.refresh-tip {
+  display: flex; align-items: center; gap: var(--space-3);
+  max-width: 1180px; margin: var(--space-3) auto 0; padding: 10px var(--space-4);
+  background: rgba(66, 153, 225, 0.1); border: 1px solid rgba(66, 153, 225, 0.35);
+  border-radius: 10px; font-size: 12px; color: var(--color-text-secondary);
+  line-height: 1.6;
+}
+.refresh-tip-icon { font-size: 16px; flex-shrink: 0; }
+.refresh-tip-text { flex: 1; }
+.refresh-tip kbd {
+  background: rgba(12, 13, 16, 0.7); border: 1px solid rgba(197, 160, 89, 0.4);
+  border-radius: 4px; padding: 1px 6px; font-size: 11px;
+  color: var(--color-gold-light); font-family: inherit;
+}
+.refresh-tip-mac { color: var(--color-text-muted); }
+.refresh-tip-close {
+  background: none; border: none; color: var(--color-text-muted);
+  cursor: pointer; font-size: 14px; flex-shrink: 0; padding: 2px 6px;
+}
+.refresh-tip-close:hover { color: var(--color-text-primary); }
+@media (max-width: 640px) {
+  .refresh-tip { margin: var(--space-2) var(--space-3) 0; font-size: 11px; }
+  .refresh-tip-mac { display: none; }
+}

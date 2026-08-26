@@ -81,6 +81,9 @@ class AethraApp {
       this.aboutModal?.close();
     });
 
+    // แถบแนะนำวิธีรีเฟรชเมื่อหน้าเว็บแสดงผลเพี้ยน
+    this.initRefreshTip();
+
     // Initial Route Handling
     this.handleRoute();
   }
@@ -115,6 +118,39 @@ class AethraApp {
         OnboardingModal.open(true);
       }, 300);
     }
+  }
+
+  /**
+   * แถบแนะนำวิธีล้างแคช
+   * แสดงให้ผู้ใช้ใหม่เห็นหนึ่งครั้ง และแสดงอัตโนมัติถ้าจับได้ว่าไฟล์เก่าค้างอยู่
+   */
+  initRefreshTip() {
+    const tip = document.getElementById('refresh-tip');
+    if (!tip) return;
+
+    const DISMISS_KEY = 'aethra_refresh_tip_dismissed';
+    const show = () => { tip.hidden = false; };
+
+    document.getElementById('refresh-tip-close')?.addEventListener('click', () => {
+      tip.hidden = true;
+      try { localStorage.setItem(DISMISS_KEY, 'true'); } catch { /* โหมดส่วนตัวเขียนไม่ได้ */ }
+    });
+
+    // กดจากฟุตเตอร์แล้วให้แสดงอีกครั้งเสมอ
+    document.getElementById('footer-refresh-help')?.addEventListener('click', () => {
+      tip.hidden = false;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
+    let dismissed = false;
+    try { dismissed = localStorage.getItem(DISMISS_KEY) === 'true'; } catch { /* ignore */ }
+    if (!dismissed) show();
+
+    // ถ้าหน้าจอไม่ขึ้นเนื้อหาเลยภายใน 6 วินาที แปลว่าน่าจะมีไฟล์เก่าค้าง ให้เตือนทันที
+    setTimeout(() => {
+      const main = document.getElementById('app-main-content');
+      if (main && main.innerText.trim().length < 30) show();
+    }, 6000);
   }
 
   handleRoute() {

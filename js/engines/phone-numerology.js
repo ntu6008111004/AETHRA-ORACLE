@@ -8,6 +8,9 @@
  *   2) คู่เลข        อ่านเลขสองตัวที่ติดกัน แต่ละคู่มีดาวประจำและความหมายต่างกัน
  *   3) จัดกลุ่มดาว   คู่เลขทั้งหมดถูกจัดเป็น 8 กลุ่มดาวตามระบบนพเคราะห์
  *
+ * ความซื่อสัตย์เรื่องการให้คะแนน: เว็บนี้ไม่ใช้คะแนน 0-100 เพราะไม่มีในตำราเล่มใด
+ * แต่สรุปเป็นระดับตามเกณฑ์ที่อ่านจากตารางได้ตรง ๆ และแสดงกฎการตัดสินให้ผู้ใช้เห็นทุกครั้ง
+ *
  * หมายเหตุความซื่อสัตย์: คู่ที่มีเลข 0 ผสมอยู่ (เช่น 01 02 03 05 06 08 09)
  * ตำราส่วนใหญ่ไม่จัดเข้ากลุ่มดาว เพราะถือว่าเลข 0 ทำให้พลังของเลขข้างเคียงอ่อนลง
  * ระบบนี้จึงระบุตรง ๆ ว่าเป็นคู่ที่ไม่มีพลังเด่น ไม่แต่งความหมายขึ้นมาเอง
@@ -131,8 +134,6 @@ export const SUM_MEANINGS = {
   97: { tone: 'bad', titleTh: 'ไม่แนะนำตามตำรา', descTh: 'ตำราถือว่าเป็นผลรวมที่ควรเลี่ยง' }
 };
 
-const TONE_SCORE = { great: 12, good: 7, mixed: 0, neutral: 0, bad: -10 };
-
 /** สร้างตารางค้นหาคู่เลข -> กลุ่มดาว */
 const PAIR_LOOKUP = (() => {
   const map = new Map();
@@ -232,44 +233,60 @@ export class PhoneNumerologyEngine {
     const badPairs = pairs.filter(p => p.group.tone === 'bad');
     const mixedPairs = pairs.filter(p => p.group.tone === 'mixed');
 
-    // 4) คะแนนรวม บอกที่มาได้
-    const factors = [
-      {
-        labelTh: 'ผลรวมเบอร์ ' + sum,
-        points: TONE_SCORE[sumInfo.tone] * 1.5,
-        reasonTh: sumInfo.titleTh
-      },
-      {
-        labelTh: 'คู่เลขที่ดี ' + goodPairs.length + ' คู่',
-        points: goodPairs.length * 5,
-        reasonTh: goodPairs.length ? 'พบคู่ ' + goodPairs.map(p => p.text).join(' ') : 'ไม่พบคู่เลขที่ดีเด่น'
-      },
-      {
-        labelTh: 'คู่เลขที่ต้องระวัง ' + badPairs.length + ' คู่',
-        points: badPairs.length * -6,
-        reasonTh: badPairs.length ? 'พบคู่ ' + badPairs.map(p => p.text).join(' ') : 'ไม่พบคู่เลขที่ต้องระวัง'
-      }
+    // 4) สรุปผลจากตารางล้วน ไม่ใช้คะแนนที่คิดขึ้นเอง
+    //
+    // เดิมเว็บนี้ให้คะแนน 0-100 ซึ่งไม่มีในตำราเล่มไหนเลย เป็นสิ่งที่เขียนขึ้นเอง
+    // ตอนนี้เปลี่ยนมาสรุปตามเกณฑ์ที่อ่านจากตารางได้ตรง ๆ และแสดงกฎให้เห็นทุกครั้ง
+    // ผู้ใช้จึงตรวจสอบตามได้เองว่าทำไมถึงได้ผลแบบนี้
+
+    const lastPair = pairs[pairs.length - 1];
+    const sumIsGood = sumInfo.tone === 'great' || sumInfo.tone === 'good';
+    const sumIsBad = sumInfo.tone === 'bad';
+    const lastIsGood = lastPair && (lastPair.group.tone === 'great' || lastPair.group.tone === 'good');
+    const lastIsBad = lastPair && lastPair.group.tone === 'bad';
+
+    // กฎการตัดสิน เขียนไว้ให้อ่านได้ ไม่ใช่สูตรลับ
+    const ruleTh = [
+      'ดีมาก: ผลรวมอยู่ในรายการมงคล และคู่ท้ายอยู่กลุ่มดาวดี และคู่ดีมากกว่าคู่เสีย',
+      'ดี: คู่ดีมากกว่าคู่เสีย และคู่ท้ายไม่ได้อยู่กลุ่มดาวเสีย',
+      'กลาง: จำนวนคู่ดีกับคู่เสียใกล้เคียงกัน',
+      'ควรระวัง: คู่เสียมากกว่าคู่ดี หรือคู่ท้ายอยู่กลุ่มดาวเสีย',
+      'ตำราแนะนำให้เลี่ยง: ผลรวมอยู่ในรายการที่ตำราเตือน และคู่เสียมากกว่าคู่ดี'
     ];
 
-    // คู่ท้ายสุดถือว่าสำคัญที่สุดตามตำรา
-    const lastPair = pairs[pairs.length - 1];
-    if (lastPair) {
-      factors.push({
-        labelTh: 'คู่ท้ายเบอร์ ' + lastPair.text,
-        points: TONE_SCORE[lastPair.group.tone] * 1.2,
-        reasonTh: 'ตำราถือว่าคู่ท้ายสุดส่งผลแรงที่สุด คู่นี้อยู่กลุ่ม ' + lastPair.group.nameTh
-      });
+    let gradeKey;
+    let gradeTh;
+    let gradeReasonTh;
+
+    if (sumIsBad && badPairs.length > goodPairs.length) {
+      gradeKey = 'avoid';
+      gradeTh = 'ตำราแนะนำให้เลี่ยง';
+      gradeReasonTh = 'ผลรวม ' + sum + ' อยู่ในรายการที่ตำราเตือน และมีคู่เสีย '
+        + badPairs.length + ' คู่ ซึ่งมากกว่าคู่ดี ' + goodPairs.length + ' คู่';
+    } else if (badPairs.length > goodPairs.length || lastIsBad) {
+      gradeKey = 'careful';
+      gradeTh = 'ควรระวัง';
+      gradeReasonTh = lastIsBad
+        ? 'คู่ท้ายเบอร์คือ ' + lastPair.text + ' ซึ่งอยู่กลุ่ม' + lastPair.group.nameTh
+          + ' ตำราถือว่าคู่ท้ายส่งผลแรงที่สุด'
+        : 'มีคู่เสีย ' + badPairs.length + ' คู่ มากกว่าคู่ดี ' + goodPairs.length + ' คู่';
+    } else if (sumIsGood && lastIsGood && goodPairs.length > badPairs.length) {
+      gradeKey = 'great';
+      gradeTh = 'ดีมาก';
+      gradeReasonTh = 'ผลรวม ' + sum + ' อยู่ในรายการมงคล คู่ท้าย ' + lastPair.text
+        + ' อยู่กลุ่ม' + lastPair.group.nameTh + ' และมีคู่ดี ' + goodPairs.length
+        + ' คู่ มากกว่าคู่เสีย ' + badPairs.length + ' คู่';
+    } else if (goodPairs.length > badPairs.length && !lastIsBad) {
+      gradeKey = 'good';
+      gradeTh = 'ดี';
+      gradeReasonTh = 'มีคู่ดี ' + goodPairs.length + ' คู่ มากกว่าคู่เสีย '
+        + badPairs.length + ' คู่ และคู่ท้ายไม่ได้อยู่กลุ่มดาวเสีย';
+    } else {
+      gradeKey = 'neutral';
+      gradeTh = 'กลาง';
+      gradeReasonTh = 'จำนวนคู่ดี ' + goodPairs.length + ' คู่ กับคู่เสีย '
+        + badPairs.length + ' คู่ ใกล้เคียงกัน ตำราจึงไม่ถือว่าเด่นหรือเสียชัดเจน';
     }
-
-    const rawScore = 60 + factors.reduce((a, f) => a + f.points, 0);
-    const score = Math.max(20, Math.min(98, Math.round(rawScore)));
-
-    let verdictTh;
-    if (score >= 80) verdictTh = 'เบอร์นี้ถือว่าดีมากตามตำรา';
-    else if (score >= 65) verdictTh = 'เบอร์นี้ใช้ได้ดี มีจุดเด่นชัดเจน';
-    else if (score >= 50) verdictTh = 'เบอร์นี้กลาง ๆ มีทั้งดีและที่ต้องระวัง';
-    else if (score >= 38) verdictTh = 'เบอร์นี้มีจุดที่ต้องระวังมากกว่าจุดดี';
-    else verdictTh = 'ตำราถือว่าเบอร์นี้ควรพิจารณาเปลี่ยน';
 
     return {
       available: true,
@@ -284,8 +301,10 @@ export class PhoneNumerologyEngine {
       badPairs,
       mixedPairs,
       tally,
-      score,
-      scoreFactors: factors.filter(f => f.points !== 0),
+      grade: gradeKey,
+      gradeTh,
+      gradeReasonTh,
+      gradeRuleTh: ruleTh,
       // ขั้นตอนการคำนวณจริงของเบอร์นี้ ใช้แสดงให้ผู้ใช้ตรวจสอบได้เอง
       calcStepsTh: [
         'เบอร์ที่กรอก: ' + digits + ' (' + digits.length + ' หลัก)',
@@ -298,15 +317,13 @@ export class PhoneNumerologyEngine {
           + (badPairs.length ? ' (' + badPairs.map(p => p.text).join(' ') + ')' : ''),
         'คู่ท้ายสุดคือ ' + (lastPair ? lastPair.text + ' อยู่กลุ่ม ' + lastPair.group.nameTh : 'ไม่มี')
           + ' ให้น้ำหนักพิเศษเพราะตำราถือว่าส่งผลแรงที่สุด',
-        'รวมคะแนน: 60 (ฐานกลาง) '
-          + factors.filter(f => f.points !== 0).map(f => (f.points > 0 ? '+ ' : '- ') + Math.abs(Math.round(f.points))).join(' ')
-          + ' = ' + score + ' คะแนน'
+        'สรุปตามเกณฑ์: ' + gradeTh + ' เพราะ' + gradeReasonTh
       ],
-      verdictTh,
+      verdictTh: gradeTh,
       digitPlanets: [...new Set(nums)].sort().map(n => ({ digit: n, ...DIGIT_PLANETS[n] })),
       summaryTh: 'เบอร์นี้มีผลรวม ' + sum + ' (' + sumInfo.titleTh + ') '
         + 'พบคู่เลขที่ดี ' + goodPairs.length + ' คู่ และคู่ที่ต้องระวัง ' + badPairs.length + ' คู่ '
-        + verdictTh,
+        + 'สรุปตามตาราง: ' + gradeTh,
       disclaimerTh: 'เลขศาสตร์เบอร์โทรเป็นความเชื่อตามตำราไทย ใช้เสริมความมั่นใจได้ '
         + 'แต่ความสำเร็จจริงมาจากการลงมือทำ ไม่ต้องเปลี่ยนเบอร์ถ้าไม่สะดวก'
     };

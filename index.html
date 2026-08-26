@@ -346,6 +346,17 @@
     </div>
   </section>
 
+  <!-- แถบช่วยเหลือเมื่อหน้าเว็บแสดงผลเพี้ยน -->
+  <div id="refresh-tip" class="refresh-tip" hidden>
+    <span class="refresh-tip-icon">💡</span>
+    <span class="refresh-tip-text">
+      หน้าเว็บแสดงผลแปลก ๆ เมนูหาย หรือกดแล้วไม่ขึ้น?
+      กด <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd> เพื่อโหลดใหม่แบบล้างแคช
+      <span class="refresh-tip-mac">(เครื่อง Mac กด <kbd>Cmd</kbd>+<kbd>Shift</kbd>+<kbd>R</kbd>)</span>
+    </span>
+    <button type="button" id="refresh-tip-close" class="refresh-tip-close" aria-label="ปิดคำแนะนำ">✕</button>
+  </div>
+
   <!-- 6. MAIN DYNAMIC APPLICATION CONTAINER -->
   <main id="app-main-content" class="container" style="min-height: 50vh;">
     <!-- Rendered dynamically by Router -->
@@ -424,6 +435,7 @@
           <ul class="footer-links">
             <li><a href="#" class="footer-link" data-action="open-about" data-i18n="nav_about">เกี่ยวกับคำอ่าน</a></li>
             <li><a href="#profile" class="footer-link" data-i18n="nav_profile">ผังดวงส่วนตัว</a></li>
+            <li><button type="button" class="footer-link" id="footer-refresh-help" style="background:none;border:none;cursor:pointer;text-align:left;padding:0;font:inherit;">หน้าเว็บเพี้ยน? กด Ctrl+Shift+R</button></li>
             <li><span class="footer-link" style="color: var(--color-text-muted);">บันทึกข้อมูลในเครื่องของคุณเท่านั้น</span></li>
           </ul>
         </div>

@@ -21,6 +21,7 @@ import { currentDateContext } from '../js/services/question-router.js';
 import { relationBetween } from '../js/views/elements-view.js';
 import { CHINESE_ELEMENTS, THAI_ELEMENTS_GUIDE, WESTERN_ELEMENTS_GUIDE, CLASH_DETAIL } from '../js/data/elements-guide.js';
 import { PhoneNumerologyEngine, PAIR_GROUPS, NEUTRAL_PAIRS, DIGIT_PLANETS, validatePhone, normalizePhone } from '../js/engines/phone-numerology.js';
+import { PLANET_POWER, TOTAL_POWER, luckyNumbersFromPower } from '../js/data/maha-thaksa.js';
 import { TaksaEngine } from '../js/engines/thai-taksa.js';
 import { PLANET_NUMBERS } from '../js/engines/life-domains.js';
 
@@ -615,7 +616,7 @@ export function runCoverageExtraTests(it) {
     assert.strictEqual(validatePhone('081-234-5678').valid, true);
   });
 
-  it('วิเคราะห์เบอร์ได้ครบและคะแนนตรงกับปัจจัย', () => {
+  it('วิเคราะห์เบอร์ได้ครบและสรุปตามเกณฑ์ที่เปิดเผย', () => {
     const r = PhoneNumerologyEngine.analyze('0812345678');
     assert.strictEqual(r.available, true);
     assert.strictEqual(r.phone, '0812345678');
@@ -626,17 +627,53 @@ export function runCoverageExtraTests(it) {
     assert.strictEqual(r.sum, 44);
     r.pairs.forEach(p => assert.ok(p.group && p.group.nameTh, 'ทุกคู่ต้องมีกลุ่มดาว'));
     assert.strictEqual(r.pairs.filter(p => p.isLast).length, 1, 'ต้องมีคู่ท้ายเพียงคู่เดียว');
-    assert.ok(r.scoreFactors.length >= 3, 'ต้องบอกที่มาของคะแนนได้');
-    assert.ok(r.score >= 20 && r.score <= 98);
+    // ต้องไม่มีคะแนนที่คิดขึ้นเองอีกแล้ว
+    assert.strictEqual(r.score, undefined, 'ต้องเลิกใช้คะแนน 0-100 ที่ไม่มีในตำรา');
+    assert.ok(['great', 'good', 'neutral', 'careful', 'avoid'].includes(r.grade));
+    assert.ok(r.gradeTh && r.gradeReasonTh.length > 15, 'ต้องบอกเหตุผลของระดับที่ได้');
+    assert.ok(r.gradeRuleTh.length >= 4, 'ต้องเปิดเผยเกณฑ์การตัดสินทั้งหมด');
     assert.ok(r.disclaimerTh.includes('ความเชื่อ'), 'ต้องมีคำเตือนตามความจริง');
   });
 
-  it('เบอร์ที่มีคู่ดีเยอะต้องได้คะแนนสูงกว่าเบอร์ที่มีคู่เสียเยอะ', () => {
-    const good = PhoneNumerologyEngine.analyze('0824563698');
-    const bad = PhoneNumerologyEngine.analyze('0812345678');
-    assert.ok(good.score > bad.score,
-      'เบอร์คู่ดีควรได้คะแนนสูงกว่า แต่ได้ ' + good.score + ' กับ ' + bad.score);
-    assert.ok(good.goodPairs.length > bad.goodPairs.length);
+  it('ระดับที่ได้ต้องตรงกับเกณฑ์ที่ประกาศไว้ ตรวจสอบตามได้', () => {
+    const rank = { avoid: 0, careful: 1, neutral: 2, good: 3, great: 4 };
+    const many = PhoneNumerologyEngine.analyze('0899999999');
+    const few = PhoneNumerologyEngine.analyze('0812345678');
+    assert.ok(many.goodPairs.length > few.goodPairs.length);
+    assert.ok(rank[many.grade] > rank[few.grade],
+      'เบอร์คู่ดีเยอะควรได้ระดับดีกว่า แต่ได้ ' + many.gradeTh + ' กับ ' + few.gradeTh);
+
+    // คู่ท้ายอยู่กลุ่มเสีย ต้องถูกลดระดับตามกฎที่ประกาศไว้
+    const lastBad = PhoneNumerologyEngine.analyze('0824563698');
+    if (lastBad.pairs[lastBad.pairs.length - 1].group.tone === 'bad') {
+      assert.ok(['careful', 'avoid'].includes(lastBad.grade),
+        'คู่ท้ายอยู่กลุ่มเสีย ต้องได้ระดับควรระวังตามกฎ');
+      assert.ok(lastBad.gradeReasonTh.includes('คู่ท้าย'));
+    }
+  });
+
+  it('กำลังพระเคราะห์ตามคัมภีร์มหาทักษารวมกันได้ 108 พอดี', () => {
+    const total = Object.values(PLANET_POWER).reduce((a, p) => a + p.power, 0);
+    assert.strictEqual(total, 108, 'กำลังดาวทั้ง 8 ต้องรวมได้ 108 ตามคัมภีร์');
+    assert.strictEqual(TOTAL_POWER, 108);
+    assert.strictEqual(Object.keys(PLANET_POWER).length, 8);
+    // ค่าที่ตรวจสอบกับแหล่งอ้างอิงแล้ว
+    assert.strictEqual(PLANET_POWER.sun.power, 6);
+    assert.strictEqual(PLANET_POWER.moon.power, 15);
+    assert.strictEqual(PLANET_POWER.venus.power, 21);
+    assert.strictEqual(PLANET_POWER.jupiter.power, 19);
+  });
+
+  it('เลขนำโชคจากกำลังวันคำนวณถูกและใช้ตรงตามที่ตำราบอก', () => {
+    const sunday = luckyNumbersFromPower('sun');
+    assert.strictEqual(sunday.power, 6);
+    assert.ok(sunday.pairsSummingToPower.every(pair =>
+      Number(pair[0]) + Number(pair[1]) === 6), 'ทุกคู่ต้องบวกกันได้เท่ากำลังวัน');
+    // ศุกร์กำลัง 21 เกิน 18 จึงไม่มีคู่สองหลักที่บวกได้ ต้องบอกตรง ๆ
+    const friday = luckyNumbersFromPower('venus');
+    assert.strictEqual(friday.pairsSummingToPower.length, 0);
+    assert.ok(friday.explainTh.includes('ไม่มี'));
+    assert.strictEqual(luckyNumbersFromPower('ไม่มีดาวนี้'), null);
   });
 
   it('เบอร์ที่ผิดรูปแบบต้องบอกเหตุผล ไม่ใช่พังหรือเดา', () => {

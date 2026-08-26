@@ -7,6 +7,7 @@
 import { Storage } from '../core/storage.js';
 import { SoundManager } from '../core/sound.js';
 import { PhoneNumerologyEngine, DIGIT_PLANETS } from '../engines/phone-numerology.js';
+import { PLANET_POWER, TOTAL_POWER, POWER_USAGE_TH, POWER_NOT_FOR_TH, luckyNumbersFromPower } from '../data/maha-thaksa.js';
 import { TaksaEngine } from '../engines/thai-taksa.js';
 import { PLANET_NUMBERS } from '../engines/life-domains.js';
 import { METHOD_USED, AGREED_POINTS_TH, DISPUTED_POINTS, HONESTY_NOTE_TH, BIRTH_LINK_METHOD, SOURCES, CONFIDENCE_LEVELS } from '../data/phone-methodology.js';
@@ -133,6 +134,11 @@ export class PhoneView {
       if (profile.birthDate) {
         const taksa = TaksaEngine.calculate(profile.birthDate, profile.birthTime);
         ownerMatch = PhoneNumerologyEngine.matchWithOwner(taksa, result, PLANET_NUMBERS);
+        const power = luckyNumbersFromPower(taksa.birthPlanetId);
+        if (power) {
+          ownerMatch.powerTh = power.explainTh;
+          ownerMatch.birthPlanetTh = power.planetTh;
+        }
       }
 
       box.innerHTML = this.renderResult(result, ownerMatch);
@@ -143,26 +149,25 @@ export class PhoneView {
   }
 
   static renderResult(r, ownerMatch) {
-    const badge = r.score >= 80 ? 'is-great' : r.score >= 65 ? 'is-good' : r.score >= 50 ? 'is-mid' : 'is-low';
-
     return `
       <section class="identity-card match-result-card">
-        <div class="match-score-ring ${badge}">
-          <div class="match-score-num">${r.score}</div>
-          <div class="match-score-max">/ 100</div>
+        <div class="grade-badge grade-${r.grade}">
+          <div class="grade-label">สรุปตามตำรา</div>
+          <div class="grade-value">${esc(r.gradeTh)}</div>
         </div>
-        <h2 class="match-headline">${esc(r.formatted)} — ${esc(r.verdictTh)}</h2>
+        <h2 class="match-headline">${esc(r.formatted)}</h2>
+        <p class="grade-reason">${esc(r.gradeReasonTh)}</p>
 
         <div class="score-breakdown" style="text-align:left;">
-          <h4>คะแนนนี้คำนวณมาจากอะไร</h4>
-          <p class="score-base">เริ่มจากคะแนนกลาง 60 แล้วบวกลบตามผลรวมและคู่เลขที่พบจริงในเบอร์</p>
-          <ul>
-            ${r.scoreFactors.map(f => `
-              <li class="${f.points >= 0 ? 'is-plus' : 'is-minus'}">
-                <span class="score-delta">${f.points > 0 ? '+' : ''}${Math.round(f.points)}</span>
-                <span><b>${esc(f.labelTh)}</b> — ${esc(f.reasonTh)}</span>
-              </li>`).join('')}
+          <h4>เกณฑ์การตัดสิน (เปิดเผยทั้งหมด ไม่มีสูตรลับ)</h4>
+          <p class="score-base">เว็บนี้ไม่ให้คะแนนเป็นตัวเลข 0-100 เพราะไม่มีในตำราเล่มใด
+          แต่สรุปเป็นระดับตามเกณฑ์ที่อ่านจากตารางได้ตรง ๆ ดังนี้</p>
+          <ul class="grade-rule-list">
+            ${r.gradeRuleTh.map(rule => `<li>${esc(rule)}</li>`).join('')}
           </ul>
+          <p class="score-base" style="margin-top:8px;">
+            เบอร์นี้เข้าเกณฑ์ <b>${esc(r.gradeTh)}</b> เพราะ${esc(r.gradeReasonTh)}
+          </p>
         </div>
 
         <details class="method-box" style="text-align:left;">
@@ -214,6 +219,29 @@ export class PhoneView {
               <p class="method-warn">${esc(BIRTH_LINK_METHOD.noteTh)}</p>
             </details>
             <div class="source-badge">มาจาก: เลขประจำดาวในผังทักษาปกรณ์ คำนวณจากวันเกิดของคุณ</div>
+          </article>
+
+          <article class="domain-section">
+            <h3>🔢 เลขนำโชคของคุณตามกำลังวัน</h3>
+            <p>${esc(ownerMatch.powerTh)}</p>
+            <div class="power-table">
+              ${Object.values(PLANET_POWER).map(pl => `
+                <div class="power-cell${pl.planetTh === ownerMatch.birthPlanetTh ? ' is-mine' : ''}">
+                  <b>${esc(pl.dayTh)}</b>
+                  <span>${pl.power}</span>
+                </div>`).join('')}
+              <div class="power-cell is-total"><b>รวมทั้งหมด</b><span>${TOTAL_POWER}</span></div>
+            </div>
+            <p class="power-note">กำลังของดาวทั้ง 8 ดวงรวมกันได้ ${TOTAL_POWER} พอดี
+            ซึ่งเป็นเลขมงคลในคติไทย จุดนี้ใช้ยืนยันว่าตัวเลขในตารางถูกต้องตามคัมภีร์</p>
+            <details class="method-inline">
+              <summary>ตำราให้ใช้กำลังวันทำอะไรบ้าง</summary>
+              <ul class="method-agree">
+                ${POWER_USAGE_TH.map(u => `<li><b>${esc(u.titleTh)}</b> — ${esc(u.detailTh)}</li>`).join('')}
+              </ul>
+              <p class="method-warn">${esc(POWER_NOT_FOR_TH)}</p>
+            </details>
+            <div class="source-badge">มาจาก: คัมภีร์มหาทักษา ตำราโหราศาสตร์ไทยดั้งเดิม</div>
           </article>` : ''}
 
           <article class="domain-section">
@@ -286,7 +314,7 @@ export class PhoneView {
         'ผลวิเคราะห์เบอร์โทรตามเลขศาสตร์ไทยที่ระบบคำนวณแล้ว:',
         'เบอร์: ' + r.formatted,
         'ผลรวมทุกหลัก: ' + r.sum + ' (' + r.sumInfo.titleTh + ' — ' + r.sumInfo.descTh + ')',
-        'คะแนนรวม: ' + r.score + '/100 (' + r.verdictTh + ')',
+        'สรุปตามตาราง: ' + r.gradeTh + ' เพราะ ' + r.gradeReasonTh,
         'คู่เลขทั้งหมด: ' + r.pairs.map(p => p.text + '=' + p.group.nameTh).join(', '),
         'คู่ท้ายสุด (สำคัญที่สุด): ' + r.pairs[r.pairs.length - 1].text + ' อยู่กลุ่ม ' + r.pairs[r.pairs.length - 1].group.nameTh,
         ownerMatch ? 'เทียบกับวันเกิดเจ้าของ: ' + ownerMatch.verdictTh : 'ไม่ทราบวันเกิดเจ้าของ ห้ามเดา',
