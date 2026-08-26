@@ -15,6 +15,8 @@ import { AstrologyEngine } from '../js/engines/astrology.js';
 import { IChingEngine } from '../js/engines/iching.js';
 import { LifeDomainsEngine } from '../js/engines/life-domains.js';
 import { detectIntent, detectShape, retrieveFacts, buildInstruction, INTENTS, QUESTION_SHAPES } from '../js/services/question-router.js';
+import { ChineseZodiacEngine } from '../js/engines/chinese-zodiac.js';
+import { scoreCareer, scoreMoney, scoreLove, scoreHealth, scoreLuck, elementBalance } from '../js/engines/scoring.js';
 
 /** AudioContext จำลองสำหรับรันโค้ดสังเคราะห์เสียงใน Node */
 function createFakeAudioContext() {
@@ -346,5 +348,121 @@ export function runCoverageExtraTests(it) {
     assert.ok(withPrev.instructionTh.includes('ห้ามขึ้นต้นคำตอบซ้ำ'));
     const withoutPrev = buildInstruction('การเงินเป็นยังไง');
     assert.ok(!withoutPrev.instructionTh.includes('ห้ามขึ้นต้นคำตอบซ้ำ'));
+  });
+
+  console.log('\n--- SECTION 28: ปีเกิด พ.ศ. ต้องไม่สับสนกับปีของรอบนักษัตร ---');
+
+  it('เกิดก่อนลี่ชุน: ปีเกิดจริงกับปีรอบนักษัตรต้องต่างกัน และแยกฟิลด์ชัดเจน', () => {
+    // 15 ม.ค. 1997 = พ.ศ. 2540 แต่ยังอยู่ในรอบปีชวด (พ.ศ. 2539) เพราะก่อนลี่ชุน 4 ก.พ.
+    const z = ChineseZodiacEngine.getZodiac('1997-01-15', '09:30', 7);
+    assert.strictEqual(z.nameTh, 'ชวด', 'เกิดก่อนลี่ชุนต้องเป็นนักษัตรปีก่อนหน้า');
+    assert.strictEqual(z.bornBeforeLiChun, true);
+    assert.strictEqual(z.birthBuddhistYear, 2540, 'ปีเกิดจริงต้องเป็น พ.ศ. 2540');
+    assert.strictEqual(z.buddhistYear, 2539, 'ปีของรอบนักษัตรคือ พ.ศ. 2539');
+    assert.notStrictEqual(z.birthBuddhistYear, z.buddhistYear, 'สองค่านี้ต้องไม่เท่ากันในกรณีนี้');
+  });
+
+  it('เกิดหลังลี่ชุน: ปีเกิดจริงกับปีรอบนักษัตรต้องตรงกัน', () => {
+    const z = ChineseZodiacEngine.getZodiac('1997-06-27', '09:30', 7);
+    assert.strictEqual(z.nameTh, 'ฉลู');
+    assert.strictEqual(z.bornBeforeLiChun, false);
+    assert.strictEqual(z.birthBuddhistYear, 2540);
+    assert.strictEqual(z.buddhistYear, 2540);
+  });
+
+  it('ปีเกิดจริงต้องเท่ากับปีในวันเกิดเสมอ ไม่ว่าเกิดวันไหน', () => {
+    const cases = ['1997-01-01', '1997-02-03', '1997-02-04', '1997-02-10', '1997-12-31',
+      '2000-01-31', '2024-02-04', '2026-02-01'];
+    cases.forEach(d => {
+      const z = ChineseZodiacEngine.getZodiac(d, '12:00', 7);
+      const expected = Number(d.slice(0, 4)) + 543;
+      assert.strictEqual(z.birthBuddhistYear, expected,
+        d + ' ปีเกิดจริงต้องเป็น พ.ศ. ' + expected);
+    });
+  });
+
+  it('ขอบเขตลี่ชุนแม่นระดับวัน: 3 ก.พ. กับ 10 ก.พ. 1997 ต้องคนละนักษัตร', () => {
+    const before = ChineseZodiacEngine.getZodiac('1997-02-03', '12:00', 7);
+    const after = ChineseZodiacEngine.getZodiac('1997-02-10', '12:00', 7);
+    assert.strictEqual(before.nameTh, 'ชวด');
+    assert.strictEqual(after.nameTh, 'ฉลู');
+    assert.strictEqual(before.birthBuddhistYear, after.birthBuddhistYear, 'ปีเกิดจริงเท่ากันทั้งคู่');
+  });
+
+  console.log('\n--- SECTION 29: คะแนนต้องคำนวณจริง ไม่ใช่ค่าคงที่ ---');
+
+  const mkProfile = (birthDate, birthTime = '09:30') => ({
+    birthDate, birthTime, lat: 13.7563, lon: 100.5018,
+    gender: 'yang', name: 'ทดสอบ', nickname: 'ท'
+  });
+
+  it('คะแนนกระจายหลากหลาย ไม่ใช่มีแค่สองสามค่า', () => {
+    const seen = { career: new Set(), money: new Set(), love: new Set(), health: new Set(), luck: new Set() };
+    for (let i = 0; i < 40; i++) {
+      const y = 1975 + i, m = (i % 12) + 1, d = (i * 7 % 27) + 1;
+      const iso = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const r = LifeDomainsEngine.analyze(mkProfile(iso));
+      Object.keys(seen).forEach(k => seen[k].add(r.domains[k].score));
+    }
+    // เดิมมีแค่ 2-3 ค่า ตอนนี้ต้องมากกว่า 8 ค่าที่ต่างกัน
+    Object.entries(seen).forEach(([k, set]) => {
+      assert.ok(set.size >= 8, 'ด้าน ' + k + ' ควรมีคะแนนหลากหลายอย่างน้อย 8 ค่า แต่มี ' + set.size);
+    });
+  });
+
+  it('ทุกคะแนนต้องบอกที่มาได้ และผลรวมต้องตรงกับปัจจัย', () => {
+    const r = LifeDomainsEngine.analyze(mkProfile('1996-08-26'));
+    ['career', 'money', 'love', 'health', 'luck'].forEach(k => {
+      const dm = r.domains[k];
+      assert.ok(dm.scoring, 'ด้าน ' + k + ' ต้องมีที่มาของคะแนน');
+      assert.ok(dm.scoring.factors.length >= 3, 'ด้าน ' + k + ' ต้องมีปัจจัยอย่างน้อย 3 ข้อ');
+      dm.scoring.factors.forEach(f => {
+        assert.ok(f.labelTh && f.reasonTh, 'ทุกปัจจัยต้องมีชื่อและเหตุผล');
+        assert.ok(typeof f.points === 'number', 'ทุกปัจจัยต้องมีคะแนนเป็นตัวเลข');
+      });
+      // ผลรวมต้องตรงกับคะแนนที่แสดง หลังจำกัดช่วง 30-95
+      const raw = dm.scoring.base + dm.scoring.factors.reduce((a, f) => a + f.points, 0);
+      const expected = Math.max(30, Math.min(95, Math.round(raw)));
+      assert.strictEqual(dm.score, expected, 'ด้าน ' + k + ' คะแนนต้องตรงกับผลรวมปัจจัย');
+    });
+  });
+
+  it('เปลี่ยนปัจจัยจริงแล้วคะแนนต้องเปลี่ยนตาม', () => {
+    const strongBazi = { strength: { isStrong: true }, missingElements: [], missingElementsTh: [] };
+    const weakBazi = { strength: { isStrong: false }, missingElements: [], missingElementsTh: [] };
+    const gods = { has: () => false };
+    const favLuck = { isFavourable: true, nameTh: 'ทดสอบ' };
+    const badLuck = { isFavourable: false, nameTh: 'ทดสอบ' };
+    const noChong = { isChong: false, matched: [] };
+    const yesChong = { isChong: true, matched: [{ labelTh: 'ชงตรง' }] };
+    const houses = { available: true };
+
+    const good = scoreCareer({ bazi: strongBazi, gods, currentLuck: favLuck, chong: noChong, houses, personalYear: 1 });
+    const bad = scoreCareer({ bazi: weakBazi, gods, currentLuck: badLuck, chong: yesChong, houses, personalYear: 9 });
+    assert.ok(good.score > bad.score, 'ปัจจัยดีทั้งหมดต้องได้คะแนนสูงกว่าปัจจัยแย่ทั้งหมด');
+
+    // ปีชงต้องหักคะแนนโชคลาภจริง
+    const luckOk = scoreLuck({ chong: noChong, currentLuck: favLuck, personalYear: 1, balance: 0.8, bazi: strongBazi });
+    const luckChong = scoreLuck({ chong: yesChong, currentLuck: favLuck, personalYear: 1, balance: 0.8, bazi: strongBazi });
+    assert.ok(luckChong.score < luckOk.score, 'ปีชงต้องทำให้คะแนนโชคลาภลดลง');
+  });
+
+  it('คะแนนอยู่ในช่วง 30-95 เสมอ ไม่ทะลุกรอบ', () => {
+    for (let i = 0; i < 30; i++) {
+      const y = 1960 + i * 2, m = (i % 12) + 1, d = (i * 5 % 28) + 1;
+      const iso = y + '-' + String(m).padStart(2, '0') + '-' + String(d).padStart(2, '0');
+      const r = LifeDomainsEngine.analyze(mkProfile(iso));
+      Object.values(r.domains).forEach(dm => {
+        assert.ok(dm.score >= 30 && dm.score <= 95, 'คะแนนต้องอยู่ในช่วง 30-95 แต่ได้ ' + dm.score);
+      });
+    }
+  });
+
+  it('ความสมดุลธาตุคำนวณถูกต้อง', () => {
+    const perfect = elementBalance({ Wood: 2, Fire: 2, Earth: 2, Metal: 2, Water: 2 });
+    const skewed = elementBalance({ Wood: 10, Fire: 0, Earth: 0, Metal: 0, Water: 0 });
+    assert.ok(perfect > 0.95, 'ธาตุเท่ากันหมดต้องได้คะแนนสมดุลเกือบเต็ม');
+    assert.ok(skewed < 0.3, 'ธาตุเทไปทางเดียวต้องได้คะแนนสมดุลต่ำ');
+    assert.strictEqual(elementBalance({ Wood: 0, Fire: 0, Earth: 0, Metal: 0, Water: 0 }), 0);
   });
 }

@@ -19,6 +19,7 @@ import { ChineseZodiacEngine } from './chinese-zodiac.js';
 import { ThaiAstrologyEngine } from './thai-astrology.js';
 import { CompatibilityEngine } from './compatibility.js';
 import { NumerologyEngine } from './numerology.js';
+import { scoreCareer, scoreMoney, scoreLove, scoreHealth, scoreLuck, elementBalance } from './scoring.js';
 import { BY_DAY_MASTER, BY_LIFE_PATH, BY_PERSONAL_YEAR, BY_BODY_ELEMENT } from '../data/domain-facets.js';
 import { TAKSA_DETAIL_TH } from '../data/taksa-detail.js';
 
@@ -35,10 +36,6 @@ export const ELEMENT_DIRECTIONS = {
 export const PLANET_NUMBERS = {
   sun: 1, moon: 2, mars: 3, mercury: 4, jupiter: 5, venus: 6, saturn: 7, rahu: 8
 };
-
-function pct(value, min = 35, max = 95) {
-  return Math.max(min, Math.min(max, Math.round(value)));
-}
 
 /** หาสิบเทพที่ปรากฏในดวง เพื่อใช้ตอบเรื่องงานและเงิน */
 function collectGods(bazi) {
@@ -140,21 +137,36 @@ export class LifeDomainsEngine {
     const currentLuck = luck.find(l => age >= l.ageFrom && age <= l.ageTo) || luck[0];
     const chong = ChineseZodiacEngine.checkChong(birthDate, birthTime || '12:00', currentYear);
 
+    // คะแนนแต่ละด้านคำนวณจากหลายปัจจัยจริง และบอกที่มาได้ทุกคะแนน
+    const balance = elementBalance(bazi.elementScores);
+    const personalYear = numerology.personalYear;
+    const isMale = gender === 'yang' || gender === 'male';
+    const matchesForScore = CompatibilityEngine.findBestMatches(birthDate, birthTime || '12:00');
+    const housesForScore = thai.houses;
+
+    const scores = {
+      career: scoreCareer({ bazi, gods, currentLuck, chong, houses: housesForScore, personalYear }),
+      money: scoreMoney({ bazi, gods, currentLuck, chong, houses: housesForScore, personalYear }),
+      love: scoreLove({ matches: matchesForScore, gods, isMale, houses: housesForScore, zodiac, chong, personalYear }),
+      health: scoreHealth({ bazi, thai, chong, balance }),
+      luck: scoreLuck({ chong, currentLuck, personalYear, balance, bazi })
+    };
+
     return {
       available: true,
-      meta: { taksa, bazi, zodiac, thai, numerology, luck, currentLuck, chong, age, hasTime },
+      meta: { taksa, bazi, zodiac, thai, numerology, luck, currentLuck, chong, age, hasTime, balance, scores },
       domains: {
-        career: this.buildCareer({ taksa, bazi, zodiac, houses, numerology, gods, dmElement, currentLuck, hasTime }),
-        money: this.buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck, numerology }),
-        love: this.buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime, numerology }),
-        health: this.buildHealth({ taksa, bazi, thai, dmElement, numerology }),
-        luck: this.buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses, numerology })
+        career: this.buildCareer({ taksa, bazi, zodiac, houses, numerology, gods, dmElement, currentLuck, hasTime, scoring: scores.career }),
+        money: this.buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck, numerology, scoring: scores.money }),
+        love: this.buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime, numerology, scoring: scores.love }),
+        health: this.buildHealth({ taksa, bazi, thai, dmElement, numerology, scoring: scores.health }),
+        luck: this.buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses, numerology, scoring: scores.luck })
       }
     };
   }
 
   // ---------------------------------------------------------------- การงาน
-  static buildCareer({ taksa, bazi, zodiac, houses, numerology, gods, dmElement, currentLuck, hasTime }) {
+  static buildCareer({ taksa, bazi, zodiac, houses, numerology, gods, dmElement, currentLuck, hasTime, scoring }) {
     const dech = taksa.byId.dech;
     const montri = taksa.byId.montri;
     const utsaha = taksa.byId.utsaha;
@@ -206,7 +218,8 @@ export class LifeDomainsEngine {
       icon: 'briefcase',
       titleTh: 'การงาน',
       subtitleTh: 'คุณเหมาะกับงานแบบไหน และจะรุ่งทางไหน',
-      score: pct(currentLuck.isFavourable ? 82 : 64),
+      score: scoring.score,
+      scoring,
       headlineTh: 'ธาตุประจำตัวคุณคือธาตุ' + dmElement.nameTh + ' ' + dmElement.meaningTh,
       sections: [
         {
@@ -255,7 +268,7 @@ export class LifeDomainsEngine {
   }
 
   // ---------------------------------------------------------------- การเงิน
-  static buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck, numerology }) {
+  static buildMoney({ taksa, bazi, houses, gods, dmElement, favDirections, goodNumbers, badNumber, currentLuck, numerology, scoring }) {
     const mula = taksa.byId.mula;
     const si = taksa.byId.si;
 
@@ -310,7 +323,8 @@ export class LifeDomainsEngine {
       icon: 'coins',
       titleTh: 'การเงิน',
       subtitleTh: 'เงินจะเข้าทางไหน เก็บอยู่ไหม และรั่วตรงไหน',
-      score: pct(currentLuck.isFavourable ? 78 : 58),
+      score: scoring.score,
+      scoring,
       headlineTh: incomeStyleTh.split(' แปลว่า')[0],
       sections: [
         { headingTh: 'เงินของคุณมาทางไหน', bodyTh: incomeStyleTh, sourceTh: 'มาจาก: ดาวทรัพย์ (เจิ้งไฉ / เพียนไฉ) ในสิบเทพของดวงจีน' },
@@ -346,7 +360,7 @@ export class LifeDomainsEngine {
   }
 
   // ---------------------------------------------------------------- ความรัก
-  static buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime, numerology }) {
+  static buildLove({ taksa, bazi, zodiac, houses, gods, gender, relationshipStatus, birthDate, birthTime, hasTime, numerology, scoring }) {
     const si = taksa.byId.si;
     const isSingle = relationshipStatus !== 'partnered' && relationshipStatus !== 'married';
     const matches = CompatibilityEngine.findBestMatches(birthDate, birthTime || '12:00');
@@ -408,7 +422,8 @@ export class LifeDomainsEngine {
       icon: 'heart',
       titleTh: 'ความรัก',
       subtitleTh: isSingle ? 'เนื้อคู่เป็นคนแบบไหน และจะเจอเมื่อไหร่' : 'ความสัมพันธ์ตอนนี้ควรดูแลเรื่องอะไร',
-      score: pct(matches.best.length * 12 + 55),
+      score: scoring.score,
+      scoring,
       headlineTh: 'นิสัยในความรักของคุณ: ' + zodiac.profile.loveTh,
       sections: [
         statusSection,
@@ -438,7 +453,7 @@ export class LifeDomainsEngine {
   }
 
   // ---------------------------------------------------------------- สุขภาพ
-  static buildHealth({ taksa, bazi, thai, dmElement, numerology }) {
+  static buildHealth({ taksa, bazi, thai, dmElement, numerology, scoring }) {
     const ayu = taksa.byId.ayu;
     const body = thai.bodyElement;
     const missing = bazi.missingElementsTh;
@@ -501,7 +516,8 @@ export class LifeDomainsEngine {
       icon: 'heartbeat',
       titleTh: 'สุขภาพ',
       subtitleTh: 'ร่างกายคุณเป็นแบบไหน ควรกินอะไร ระวังอะไร',
-      score: pct(missing.length ? 62 : 80),
+      score: scoring.score,
+      scoring,
       headlineTh: 'คุณเป็นคน' + body.nameTh + ' — ' + body.natureTh,
       sections: [
         {
@@ -535,7 +551,7 @@ export class LifeDomainsEngine {
   }
 
   // ------------------------------------------------- โชคลาภและจังหวะชีวิต
-  static buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses, numerology }) {
+  static buildLuck({ taksa, bazi, zodiac, chong, goodNumbers, badNumber, favDirections, currentLuck, houses, numerology, scoring }) {
     const si = taksa.byId.si;
     const mula = taksa.byId.mula;
 
@@ -566,7 +582,8 @@ export class LifeDomainsEngine {
       icon: 'sparkle',
       titleTh: 'โชคลาภและจังหวะชีวิต',
       subtitleTh: 'ปีนี้ดวงเป็นยังไง ชงไหม เลขอะไรดี',
-      score: pct(chong.isChong ? 52 : (currentLuck.isFavourable ? 85 : 68)),
+      score: scoring.score,
+      scoring,
       headlineTh: chong.headlineTh,
       sections: [
         { headingTh: 'ปีนี้คุณชงหรือไม่', bodyTh: chong.adviceTh, sourceTh: 'มาจาก: กฎการปะทะของกิ่งดิน 12 ตัว เทียบปีนักษัตรของคุณกับปีปัจจุบัน' },

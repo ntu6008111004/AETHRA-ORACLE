@@ -123,7 +123,11 @@ export class ChineseZodiacEngine {
 
     return {
       zodiacYear,
+      // ปีของรอบนักษัตรตามปฏิทินจีน (อาจน้อยกว่าปีเกิดหนึ่งปีถ้าเกิดก่อนลี่ชุน)
       buddhistYear: zodiacYear + 543,
+      // ปีเกิดจริงตามปฏิทินสากล แปลงเป็น พ.ศ. ใช้แสดงว่า "เกิดปี พ.ศ. อะไร"
+      birthYear: y,
+      birthBuddhistYear: y + 543,
       branchIndex,
       branch,
       nameTh: branch.nameTh,

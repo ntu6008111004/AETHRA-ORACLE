@@ -48,6 +48,20 @@ function escapeHtml(value) {
     .replace(/>/g, '&gt;');
 }
 
+
+const THAI_MONTHS_SHORT = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.',
+  'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.'];
+
+/** แปลง 1997-01-15 เป็น 15 ม.ค. 2540 พร้อมคืนปี พ.ศ. จริงของวันเกิด */
+function toThaiDate(isoDate) {
+  const [y, m, d] = String(isoDate || '').split('-').map(Number);
+  if (!y || !m || !d) return { text: String(isoDate || ''), buddhistYear: null };
+  return {
+    text: d + ' ' + THAI_MONTHS_SHORT[m - 1] + ' ' + (y + 543),
+    buddhistYear: y + 543
+  };
+}
+
 function scoreLabel(score) {
   if (score >= 80) return { text: 'ดีมาก', cls: 'is-great' };
   if (score >= 65) return { text: 'ดี', cls: 'is-good' };
@@ -105,15 +119,24 @@ export class ReadingView {
 
   static renderIdentityCard(name, meta, profile) {
     const { taksa, bazi, zodiac, thai, numerology, chong, age } = meta;
+    const born = toThaiDate(profile.birthDate);
+
+    // ปีนักษัตรจีนเปลี่ยนที่วันลี่ชุน (ราว 4 ก.พ.) ไม่ใช่ 1 มกราคม
+    // คนที่เกิดต้นปีก่อนลี่ชุนจึงได้นักษัตรของปีก่อนหน้า ซึ่งทำให้สับสนได้
+    // จึงต้องแยกให้ชัดว่าอันไหนคือปีเกิดจริง อันไหนคือปีของรอบนักษัตร
+    const zodiacHint = zodiac.bornBeforeLiChun
+      ? 'นับตามปฏิทินจีน = รอบปี พ.ศ. ' + zodiac.buddhistYear + ' (ไม่ใช่ปีเกิด)'
+      : 'ตรงกับปีเกิด พ.ศ. ' + zodiac.buddhistYear;
+
     const facts = [
-      { label: 'วันเกิดของคุณ', value: `${taksa.weekdayNameTh} ที่ ${profile.birthDate}`, hint: `อายุประมาณ ${age} ปี` },
-      { label: 'ราศีเกิด (สากล)', value: `ราศี${thai.westernSunSign.nameTh}`, hint: 'ราศีที่คนทั่วไปถามกัน' },
-      { label: 'ราศีเกิด (แบบไทย)', value: `ราศี${thai.thaiSunSignNameTh}`, hint: 'โหราศาสตร์ไทยใช้ระบบนิรายนะ' },
-      { label: 'ปีนักษัตร', value: `ปี${zodiac.nameTh} (${zodiac.animalTh})`, hint: `พ.ศ. ${zodiac.buddhistYear}` },
-      { label: 'ธาตุประจำตัว (ดวงจีน)', value: `ธาตุ${bazi.dayMasterElement.nameTh}`, hint: bazi.strength.labelTh },
+      { label: 'วันเกิดของคุณ', value: taksa.weekdayNameTh + ' ที่ ' + born.text, hint: 'อายุประมาณ ' + age + ' ปี · ' + profile.birthDate },
+      { label: 'ราศีเกิด (สากล)', value: 'ราศี' + thai.westernSunSign.nameTh, hint: 'ราศีที่คนทั่วไปถามกัน' },
+      { label: 'ราศีเกิด (แบบไทย)', value: 'ราศี' + thai.thaiSunSignNameTh, hint: 'โหราศาสตร์ไทยใช้ระบบนิรายนะ' },
+      { label: 'ปีนักษัตร', value: 'ปี' + zodiac.nameTh + ' (' + zodiac.animalTh + ')', hint: zodiacHint, warn: zodiac.bornBeforeLiChun },
+      { label: 'ธาตุประจำตัว (ดวงจีน)', value: 'ธาตุ' + bazi.dayMasterElement.nameTh, hint: bazi.strength.labelTh },
       { label: 'ธาตุเจ้าเรือน (แพทย์แผนไทย)', value: thai.bodyElement.nameTh, hint: thai.bodyElement.natureTh },
-      { label: 'เลขเส้นทางชีวิต', value: `เลข ${numerology.lifePath}`, hint: numerology.meaningTh.title },
-      { label: `สถานะปีชง พ.ศ. ${chong.buddhistYear}`, value: chong.isChong ? 'ปีนี้ชง' : 'ปีนี้ไม่ชง', hint: chong.isChong ? chong.matched[0].labelTh : 'เดินได้ตามปกติ', warn: chong.isChong }
+      { label: 'เลขเส้นทางชีวิต', value: 'เลข ' + numerology.lifePath, hint: numerology.meaningTh.title },
+      { label: 'สถานะปีชง พ.ศ. ' + chong.buddhistYear, value: chong.isChong ? 'ปีนี้ชง' : 'ปีนี้ไม่ชง', hint: chong.isChong ? chong.matched[0].labelTh : 'เดินได้ตามปกติ', warn: chong.isChong }
     ];
 
     return `
@@ -134,6 +157,17 @@ export class ReadingView {
               <div class="identity-fact-hint">${escapeHtml(f.hint)}</div>
             </div>`).join('')}
         </div>
+        ${zodiac.bornBeforeLiChun ? `
+        <div class="notice-card is-warn" style="margin-top: var(--space-4);">
+          <span class="notice-icon">📅</span>
+          <div>
+            <strong>ทำไมปีนักษัตรถึงไม่ตรงกับปีเกิด?</strong>
+            <p>คุณเกิดวันที่ ${escapeHtml(born.text)} ซึ่งอยู่<b>ก่อนวันลี่ชุน</b> (วันขึ้นปีใหม่ตามปฏิทินจีน ตกราววันที่ 4 กุมภาพันธ์ของทุกปี)
+            ตามหลักโหราศาสตร์จีนจึงนับว่าคุณยังอยู่ในรอบปี${escapeHtml(zodiac.nameTh)} (พ.ศ. ${zodiac.buddhistYear}) ไม่ใช่นักษัตรของปีเกิดตามปฏิทินสากล</p>
+            <p style="margin-top:6px;">พูดง่าย ๆ คือ <b>ปีเกิดของคุณคือ พ.ศ. ${born.buddhistYear}</b> แต่ <b>ปีนักษัตรคือปี${escapeHtml(zodiac.nameTh)}</b>
+            ทั้งสองอย่างถูกต้องทั้งคู่ เพียงแต่ใช้คนละปฏิทิน — จุดนี้เว็บดูดวงหลายแห่งคำนวณผิด เพราะไปนับที่ 1 มกราคม</p>
+          </div>
+        </div>` : ''}
         <p class="identity-note">${withGlossary(meta.thai.signDiffersNoteTh)}</p>
       </section>`;
   }
@@ -205,8 +239,24 @@ export class ReadingView {
           <div class="domain-score ${badge.cls}">
             <div class="domain-score-num">${domain.score}</div>
             <div class="domain-score-text">${badge.text}</div>
+            ${domain.scoring ? `<button type="button" class="score-why-btn" data-score-why="${domain.id}">ดูที่มา</button>` : ''}
           </div>
         </header>
+
+        ${domain.scoring ? `
+          <div class="score-breakdown" data-score-panel="${domain.id}" hidden>
+            <h4>คะแนน ${domain.score} นี้คำนวณมาจากอะไร</h4>
+            <p class="score-base">เริ่มจากคะแนนกลาง ${domain.scoring.base} คะแนน แล้วบวกลบตามผลคำนวณจริงในดวงคุณ</p>
+            <ul>
+              ${domain.scoring.factors.map(f => `
+                <li class="${f.points >= 0 ? 'is-plus' : 'is-minus'}">
+                  <span class="score-delta">${f.points > 0 ? '+' : ''}${f.points}</span>
+                  <span><b>${escapeHtml(f.labelTh)}</b> — ${escapeHtml(f.reasonTh)}</span>
+                </li>`).join('')}
+            </ul>
+            <p class="score-note">คะแนนนี้เป็นการสรุปแนวโน้มตามตำรา ไม่ใช่การวัดผลแบบวิทยาศาสตร์
+            ใช้เทียบว่าด้านไหนของคุณเด่นกว่าด้านไหนได้ แต่อย่าใช้ตัดสินชีวิต</p>
+          </div>` : ''}
 
         ${domain.needsMoreDataTh ? `
           <div class="notice-card is-info">
@@ -268,6 +318,17 @@ export class ReadingView {
           p.classList.toggle('is-active', p.dataset.panel === id);
         });
         SoundManager.play('tab-switch');
+      });
+    });
+
+    // เปิดปิดกล่องที่มาของคะแนน
+    container.querySelectorAll('.score-why-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const panel = container.querySelector('[data-score-panel="' + btn.dataset.scoreWhy + '"]');
+        if (!panel) return;
+        panel.hidden = !panel.hidden;
+        btn.textContent = panel.hidden ? 'ดูที่มา' : 'ซ่อน';
+        SoundManager.play('ui-select');
       });
     });
 
