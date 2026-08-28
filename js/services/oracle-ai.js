@@ -26,8 +26,18 @@ const REQUEST_TIMEOUT_MS = 90000;
 const DIRECT_CONFIG = {
   apiUrl: 'https://thaillm.or.th/api/v1/chat/completions',
   apiKey: 'qNBb3Le1AxZtPNKDlPw3GObDPtBulxoq',
-  model: 'pathumma-thaillm-qwen3-8b-think-3.0.0'
+  model: 'qwen3.6-35b-a3b'
 };
+
+/**
+ * ปิดโหมดคิดก่อนตอบของโมเดล
+ *
+ * โมเดลตระกูลนี้ถ้าไม่ปิด จะพ่นกระบวนการคิดเป็นภาษาอังกฤษยาวเป็นพันตัวอักษร
+ * ออกมาปนกับคำตอบ และที่แย่กว่านั้นคือบางครั้งพ่นออกมาโดยไม่มีแท็กเปิด
+ * มีแต่แท็กปิด ทำให้ตัวกรองที่หาคู่แท็กกรองไม่เจอ ผู้ใช้จึงเห็นภาษาอังกฤษเต็มจอ
+ * ทดสอบแล้วว่าใส่ค่านี้ทำให้ได้ภาษาไทยล้วน ไม่มีอักษรอังกฤษแม้แต่ตัวเดียว
+ */
+const NO_THINKING = { chat_template_kwargs: { enable_thinking: false } };
 
 const SYSTEM_PROMPT_BASE = [
   'คุณคือหมอดูไทยที่อธิบายผลดูดวงให้คนทั่วไปฟัง',
@@ -49,13 +59,94 @@ const SYSTEM_PROMPT_BASE = [
 
 let cachedMode = null; // 'server' | 'direct'
 
+/**
+ * แยกส่วนคิดของโมเดลออกจากคำตอบจริง
+ *
+ * รองรับสามรูปแบบที่เจอจริงจากผู้ให้บริการ
+ * 1. ครบคู่ปกติ think เปิดและปิด
+ * 2. มีแต่แท็กปิด ไม่มีแท็กเปิด (โมเดลรุ่นใหม่ทำแบบนี้) ทุกอย่างก่อนแท็กปิดคือความคิด
+ * 3. มีแต่แท็กเปิด ไม่มีแท็กปิด (คำตอบถูกตัดกลางคัน) ถือว่าไม่มีคำตอบจริง
+ */
 export function parseOracleThinking(rawContent) {
   const raw = String(rawContent || '');
-  const thinkingMatch = raw.match(/<think>([\s\S]*?)<\/think>/i);
-  return {
-    answer: raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(),
-    thinking: thinkingMatch?.[1]?.trim() || null
-  };
+
+  const paired = raw.match(/<think>([\s\S]*?)<\/think>/i);
+  if (paired) {
+    return {
+      answer: raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim(),
+      thinking: paired[1].trim() || null
+    };
+  }
+
+  const closeOnly = raw.match(/^([\s\S]*?)<\/think>([\s\S]*)$/i);
+  if (closeOnly) {
+    return { answer: closeOnly[2].trim(), thinking: closeOnly[1].trim() || null };
+  }
+
+  const openOnly = raw.match(/^([\s\S]*?)<think>([\s\S]*)$/i);
+  if (openOnly) {
+    return { answer: openOnly[1].trim(), thinking: openOnly[2].trim() || null };
+  }
+
+  return { answer: raw.trim(), thinking: null };
+}
+
+/**
+ * ด่านสุดท้ายกันภาษาต่างประเทศหลุดถึงผู้ใช้
+ *
+ * เว็บนี้เป็นภาษาไทยล้วน ถ้าโมเดลเผลอตอบเป็นภาษาอื่นต้องถือว่าใช้ไม่ได้
+ * แล้วไปลองช่องทางถัดไปแทน
+ *
+ * ที่ต้องกันมากกว่าภาษาอังกฤษ เพราะเจอมาแล้วจริงสองแบบ
+ * 1. โมเดลพ่นกระบวนการคิดเป็นภาษาอังกฤษยาวเป็นพันตัวอักษร
+ * 2. โมเดลที่ฝึกด้วยข้อมูลจีน แอบใส่คำจีนท้ายคำตอบ เช่น 仅供参考
+ *    ซึ่งคนไทยอ่านไม่ออกและดูเหมือนเว็บพัง
+ *
+ * อักษรจีน ญี่ปุ่น เกาหลี ห้ามมีแม้แต่ตัวเดียว เพราะไม่มีเหตุผลที่จะโผล่มา
+ * ส่วนอักษรโรมันยอมให้ปนได้บ้าง เพราะคำตอบไทยปกติอาจมีชื่อแอปหรือเลขปี ค.ศ.
+ */
+/**
+ * ซ่อมคำตอบที่มีอักษรต่างประเทศหลุดมานิดหน่อย
+ *
+ * โมเดลรุ่นนี้บางครั้งแทรกคำจีนกลางประโยคไทย เช่น เขียนว่า
+ * "เก็บความรู้สึกไว้太多 (มาก)" ซึ่งเป็นการเผลอใช้คำจีนแล้ววงเล็บแปลไทยตามหลัง
+ * ถ้าโยนคำตอบทิ้งทั้งก้อนแล้วถามใหม่ ผู้ใช้ต้องรออีกรอบโดยไม่จำเป็น
+ * เพราะเนื้อหาส่วนที่เหลือใช้ได้ดี
+ *
+ * จึงตัดเฉพาะอักษรต่างประเทศออก แล้วเก็บคำแปลไทยในวงเล็บไว้
+ * ทำเฉพาะกรณีที่หลุดมานิดเดียว ถ้าหลุดเยอะแปลว่าโมเดลตอบผิดภาษาทั้งก้อน
+ * กรณีนั้นต้องถามใหม่ ซ่อมไม่ได้
+ */
+const CJK_RE = /[぀-ヿ㐀-䶿一-鿿가-힯]/g;
+const MAX_REPAIRABLE_CJK = 8;
+
+export function repairForeignChars(answerText) {
+  const text = String(answerText || '');
+  const hits = text.match(CJK_RE);
+  if (!hits) return text;
+  if (hits.length > MAX_REPAIRABLE_CJK) return text;
+
+  return text
+    .replace(CJK_RE, '')
+    // เก็บกวาดร่องรอยหลังตัด เช่น วงเล็บว่าง หรือช่องว่างซ้อน
+    .replace(/\(\s*\)/g, '')
+    .replace(/[ 	]{2,}/g, ' ')
+    .replace(/\s+([,.!?])/g, '$1')
+    .trim();
+}
+
+export function looksEnglish(answerText) {
+  const text = String(answerText || '');
+
+  // อักษรจีน ญี่ปุ่น เกาหลี เจอแม้แต่ตัวเดียวถือว่าหลุดทันที
+  if (/[぀-ヿ㐀-䶿一-鿿가-힯]/.test(text)) return true;
+
+  const thai = (text.match(/[฀-๿]/g) || []).length;
+  const latin = (text.match(/[A-Za-z]/g) || []).length;
+  if (thai + latin === 0) return true;
+  if (thai === 0) return true;
+  // อักษรโรมันเกินหนึ่งในสี่ของตัวอักษรทั้งหมด ถือว่าหลุดโหมดภาษาแล้ว
+  return latin > (thai + latin) * 0.25;
 }
 
 function normalizeMessages(messages) {
@@ -126,6 +217,7 @@ async function callProxy(messages, context, purpose, signal) {
     body: JSON.stringify({
       max_tokens: 6144,
       temperature: 0.55,
+      ...NO_THINKING,
       messages: [{ role: 'system', content: systemPrompt }, ...messages]
     })
   });
@@ -139,7 +231,7 @@ async function callProxy(messages, context, purpose, signal) {
       message: payload.error?.message || 'ดวงดาวยังไม่เรียงตัว กรุณากดถามอีกครั้ง'
     };
   }
-  return { success: true, rawAnswer: answer, model: 'pathumma-thaillm-qwen3-8b-think-3.0.0', usage: payload.usage || null };
+  return { success: true, rawAnswer: answer, model: DIRECT_CONFIG.model, usage: payload.usage || null };
 }
 
 /** เรียก ThaiLLM ตรงจากเบราว์เซอร์แบบเลี่ยง preflight */
@@ -156,6 +248,7 @@ async function callDirect(messages, context, purpose, signal) {
       model: DIRECT_CONFIG.model,
       max_tokens: 6144,
       temperature: 0.55,
+      ...NO_THINKING,
       messages: [{ role: 'system', content: systemPrompt }, ...messages]
     })
   });
@@ -259,6 +352,18 @@ export class OracleAIService {
         if (result?.success) {
           cachedMode = channel;
           const parsed = parseOracleThinking(result.rawAnswer);
+          // หลุดอักษรต่างประเทศมานิดเดียว ซ่อมได้ ไม่ต้องให้ผู้ใช้รอถามใหม่
+          parsed.answer = repairForeignChars(parsed.answer);
+          // ด่านที่สาม ถ้าคำตอบหลุดเป็นภาษาอังกฤษ ถือว่าใช้ไม่ได้ ไปลองช่องทางถัดไป
+          // เว็บนี้เป็นภาษาไทยล้วน ผู้ใช้ไม่ควรเห็นภาษาอังกฤษจากหมอดูเลย
+          if (parsed.answer && looksEnglish(parsed.answer)) {
+            lastFailure = {
+              success: false,
+              error: 'wrong_language',
+              message: 'หมอดูเปิดตำราผิดเล่ม กำลังเปิดใหม่'
+            };
+            continue;
+          }
           // บางครั้งโมเดลใช้โควตาไปกับการคิดจนเนื้อคำตอบว่าง ให้ถือว่าล้มเหลวและลองใหม่
           if (parsed.answer) {
             return {

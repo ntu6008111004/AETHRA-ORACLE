@@ -36,9 +36,25 @@ const AI_CONFIG = {
       ? configured
       : 'https://thaillm.or.th/api/v1/chat/completions';
   })(),
-  model: process.env.THAILLM_MODEL || 'pathumma-thaillm-qwen3-8b-think-3.0.0',
+  model: process.env.THAILLM_MODEL || 'qwen3.6-35b-a3b',
   timeoutMs: 45000
 };
+
+/**
+ * ตัดส่วนคิดของโมเดลออก รองรับกรณีแท็กไม่ครบคู่
+ * โมเดลรุ่นใหม่บางครั้งพ่นความคิดออกมาโดยมีแต่แท็กปิด ไม่มีแท็กเปิด
+ */
+function stripThinking(rawAnswer) {
+  const raw = String(rawAnswer || '');
+  if (/<think>[\s\S]*?<\/think>/i.test(raw)) {
+    return raw.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+  }
+  const closeOnly = raw.match(/^[\s\S]*?<\/think>([\s\S]*)$/i);
+  if (closeOnly) return closeOnly[1].trim();
+  const openOnly = raw.match(/^([\s\S]*?)<think>[\s\S]*$/i);
+  if (openOnly) return openOnly[1].trim();
+  return raw.trim();
+}
 
 const MIME_TYPES = {
   '.html': 'text/html; charset=UTF-8',
@@ -145,6 +161,7 @@ ${todayLine}
         },
         body: JSON.stringify({
           model: AI_CONFIG.model,
+          chat_template_kwargs: { enable_thinking: false },
           max_tokens: 6144,
           temperature: 0.55,
           messages: [{ role: 'system', content: systemPrompt }, ...messages]
@@ -157,13 +174,14 @@ ${todayLine}
     const payload = await upstream.json().catch(() => ({}));
     let answer = payload.choices?.[0]?.message?.content;
     // โมเดลแบบคิดก่อนตอบ (<think>) บางครั้งใช้โควตาคิดจนคำตอบจริงว่าง — ลองใหม่หนึ่งครั้ง
-    const visible = String(answer || '').replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+    const visible = stripThinking(answer);
     if (upstream.ok && !visible) {
       const retry = await fetch(AI_CONFIG.apiUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${AI_CONFIG.apiKey}` },
         body: JSON.stringify({
           model: AI_CONFIG.model,
+          chat_template_kwargs: { enable_thinking: false },
           max_tokens: 6144,
           temperature: 0.4,
           messages: [

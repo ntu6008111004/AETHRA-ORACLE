@@ -22,6 +22,7 @@ import { ReadingView } from './views/reading-view.js';
 import { MatchView } from './views/match-view.js';
 import { ElementsView } from './views/elements-view.js';
 import { PhoneView } from './views/phone-view.js';
+import { DreamView } from './views/dream-view.js';
 import { OtherView } from './views/other-view.js';
 
 class AethraApp {
@@ -224,6 +225,10 @@ class AethraApp {
 
       case 'other':
         OtherView.render(this.appRoot);
+        break;
+
+      case 'dream':
+        DreamView.render(this.appRoot);
         break;
 
       case 'traditions':

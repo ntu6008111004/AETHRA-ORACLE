@@ -11,6 +11,12 @@ import { NumerologyEngine, LIFE_PATH_MEANINGS_TH } from '../js/engines/numerolog
 import { CompatibilityEngine } from '../js/engines/compatibility.js';
 import { UnifiedReadingEngine } from '../js/engines/unified.js';
 import { I18n } from '../js/core/i18n.js';
+import { parseThaiBirthDate, parseThaiBirthTime, resolveYear } from '../js/core/thai-date-input.js';
+import { DreamEngine } from '../js/engines/dream.js';
+import { DREAM_BOOK } from '../js/data/dream-book.js';
+import { parseOracleThinking, looksEnglish, repairForeignChars } from '../js/services/oracle-ai.js';
+import { buildFactSheet, buildResonancePrompt, BANNED_VAGUE_TH } from '../js/services/resonance.js';
+import { lifeStageOf } from '../js/data/modern-context.js';
 import { buildVersionMap, stampHtml } from '../scripts/stamp-version.js';
 import { AstrologyEngine } from '../js/engines/astrology.js';
 import { IChingEngine } from '../js/engines/iching.js';
@@ -252,6 +258,248 @@ export function runCoverageExtraTests(it) {
     const stale = stampHtml(once, { version: 'aaaaaaaaaa', imports: {} });
     assert.ok(stale.includes('./css/index.css?v=aaaaaaaaaa'));
     assert.ok(!stale.includes('?v=' + map.version));
+  });
+
+
+  console.log('\n--- SECTION 33: วันเกิดที่ผู้ใช้พิมพ์เอง ---');
+
+  it('อ่านวันเกิดได้ทุกรูปแบบที่คนไทยเขียนจริง ทั้ง พ.ศ. และ ค.ศ.', () => {
+    const NOW = new Date('2026-08-28T12:00:00+07:00');
+    // วันเกิดเดียวกัน เขียนได้สิบกว่าแบบ ต้องได้ผลตรงกันหมด
+    const same = ['27/06/2541', '27-06-2541', '27.06.2541', '27 06 2541', '27/6/2541',
+      '27/06/1998', '27 มิถุนายน 2541', '27 มิ.ย. 2541', '27 มิย 2541',
+      '2541-06-27', '๒๗/๐๖/๒๕๔๑', '27/6/41'];
+    same.forEach(input => {
+      const r = parseThaiBirthDate(input, NOW);
+      assert.strictEqual(r.ok, true, 'ต้องอ่านออก: ' + input);
+      assert.strictEqual(r.isoDate, '1998-06-27', 'ต้องได้วันเดียวกัน: ' + input);
+    });
+    // ต้องแสดงกลับเป็นภาษาไทยให้ผู้ใช้ยืนยัน
+    const shown = parseThaiBirthDate('27/06/2541', NOW);
+    assert.ok(shown.displayTh.includes('มิถุนายน'));
+    assert.ok(shown.displayTh.includes('2541'));
+  });
+
+  it('ปฏิเสธวันเกิดที่เป็นไปไม่ได้ พร้อมบอกเหตุผลเป็นภาษาไทย', () => {
+    const NOW = new Date('2026-08-28T12:00:00+07:00');
+    const bad = ['31/02/2541', '27/13/2541', '27/06/2600', '00/06/2541', 'มั่วซั่ว', ''];
+    bad.forEach(input => {
+      const r = parseThaiBirthDate(input, NOW);
+      assert.strictEqual(r.ok, false, 'ต้องปฏิเสธ: ' + input);
+      assert.ok(r.errorTh && r.errorTh.length > 5, 'ต้องมีเหตุผล: ' + input);
+      assert.ok(!/[A-Za-z]/.test(r.errorTh), 'เหตุผลต้องเป็นภาษาไทย ไม่มีอังกฤษ');
+    });
+    // วันเกิดในอนาคตต้องไม่ผ่าน
+    assert.strictEqual(parseThaiBirthDate('01/01/2570', NOW).ok, false);
+  });
+
+  it('แยก พ.ศ. กับ ค.ศ. ถูกต้อง และบอกผู้ใช้เมื่อระบบต้องเดา', () => {
+    const NOW = new Date('2026-08-28T12:00:00+07:00');
+    assert.strictEqual(resolveYear(2541, NOW).era, 'be');
+    assert.strictEqual(resolveYear(2541, NOW).year, 1998);
+    assert.strictEqual(resolveYear(1998, NOW).era, 'ce');
+    assert.strictEqual(resolveYear(1998, NOW).year, 1998);
+    // ปีสองหลักระบบต้องเดา และต้องบอกผู้ใช้ว่าเดาเป็นอะไร
+    const guessed = resolveYear(41, NOW);
+    assert.strictEqual(guessed.assumed, true);
+    assert.ok(guessed.noteTh.includes('2541'));
+  });
+
+  it('อ่านเวลาเกิดที่เขียนเป็นคำไทยได้ เพราะผู้สูงอายุมักบอกแบบนี้', () => {
+    const cases = [['09:30', '09:30'], ['9.30', '09:30'], ['สองทุ่ม', '20:00'],
+      ['บ่ายสองโมง', '14:00'], ['เที่ยงคืน', '00:00'], ['ตีสาม', '03:00'],
+      ['หกโมงเช้า', '06:00'], ['เที่ยงวัน', '12:00'], ['23:59', '23:59']];
+    cases.forEach(([input, expect]) => {
+      const r = parseThaiBirthTime(input);
+      assert.strictEqual(r.ok, true, 'ต้องอ่านออก: ' + input);
+      assert.strictEqual(r.time, expect, input + ' ต้องได้ ' + expect);
+    });
+    assert.strictEqual(parseThaiBirthTime('อะไรก็ไม่รู้').ok, false);
+  });
+
+  console.log('\n--- SECTION 34: ทำนายฝัน ---');
+
+  it('ตำราฝันมีข้อมูลครบถ้วนและไม่มีภาษาต่างประเทศปน', () => {
+    assert.ok(DREAM_BOOK.length >= 100, 'ตำราต้องมีอย่างน้อย 100 สัญลักษณ์');
+    DREAM_BOOK.forEach(s => {
+      const all = s.keyTh + ' ' + s.meaningTh + ' ' + s.adviceTh;
+      assert.ok(!/[A-Za-z]/.test(all), 'ห้ามมีอักษรอังกฤษ: ' + s.keyTh);
+      assert.ok(!/[\u4E00-\u9FFF\u3040-\u30FF]/.test(all), 'ห้ามมีอักษรจีนญี่ปุ่น: ' + s.keyTh);
+      assert.ok(['ดี', 'ร้าย', 'ปนกัน'].includes(s.tone), 'โทนต้องถูกต้อง: ' + s.keyTh);
+      assert.ok(s.meaningTh.length >= 60, 'ความหมายต้องละเอียดพอ: ' + s.keyTh);
+      assert.ok(s.numbers.length >= 2, 'ต้องมีเลขตามตำรา: ' + s.keyTh);
+      assert.ok(s.sourceTh, 'ต้องบอกที่มา: ' + s.keyTh);
+    });
+  });
+
+  it('ตำราฝันต้องไม่ชี้นำการพนัน', () => {
+    const banned = ['ควรซื้อ', 'ซื้อหวย', 'แทงหวย', 'ถูกรางวัลแน่', 'รวยแน่นอน'];
+    DREAM_BOOK.forEach(s => {
+      const all = s.meaningTh + ' ' + s.adviceTh;
+      banned.forEach(b => {
+        assert.ok(!all.includes(b), s.keyTh + ' ห้ามมีคำชี้นำการพนัน: ' + b);
+      });
+    });
+  });
+
+  it('ความหมายของแต่ละสัญลักษณ์ต้องไม่ซ้ำกัน', () => {
+    const seen = new Map();
+    DREAM_BOOK.forEach(s => {
+      const key = s.meaningTh.slice(0, 70);
+      assert.ok(!seen.has(key), s.keyTh + ' มีความหมายซ้ำกับ ' + seen.get(key));
+      seen.set(key, s.keyTh);
+    });
+    const keys = DREAM_BOOK.map(s => s.keyTh);
+    assert.strictEqual(new Set(keys).size, keys.length, 'ชื่อสัญลักษณ์ต้องไม่ซ้ำ');
+  });
+
+  it('จับสัญลักษณ์ในฝันได้ถูกต้อง และไม่จับคำที่โผล่กลางคำอื่น', () => {
+    const snake = DreamEngine.interpret('ฝันว่ามีงูใหญ่เลื้อยเข้ามาในบ้าน', {});
+    assert.strictEqual(snake.available, true);
+    assert.ok(snake.symbols.some(s => s.keyTh === 'งูใหญ่'));
+
+    // เคสจริงที่เคยพลาด คำว่า นก ไปโผล่ใน กินก๋วยเตี๋ยว
+    const noodle = DreamEngine.interpret('ฝันว่ากินก๋วยเตี๋ยวอร่อยมาก', {});
+    assert.ok(!(noodle.symbols || []).some(s => s.keyTh === 'นก'),
+      'ห้ามจับคำว่า นก จากคำว่า กินก๋วยเตี๋ยว');
+
+    // แต่ถ้าเป็นนกจริงต้องจับได้
+    const bird = DreamEngine.interpret('ฝันเห็นนกบินเข้าบ้าน', {});
+    assert.ok(bird.symbols.some(s => s.keyTh.includes('นก')), 'นกจริงต้องจับได้');
+  });
+
+  it('ฝันที่ตำราไม่มี ต้องบอกตรง ๆ ว่าไม่มี ห้ามเดาความหมาย', () => {
+    const weird = DreamEngine.interpret('ฝันว่ากำลังเขียนโปรแกรมอยู่หน้าจอ', {});
+    if (!weird.available) {
+      assert.ok(weird.reasonTh.includes('ไม่') , 'ต้องบอกว่าตำราไม่มี');
+      assert.ok(weird.symbols.length === 0, 'ห้ามคืนสัญลักษณ์มั่ว');
+    }
+    // ข้อความว่างและสั้นเกินไปต้องไม่พัง
+    assert.strictEqual(DreamEngine.interpret('', {}).available, false);
+    assert.strictEqual(DreamEngine.interpret('งู', {}).available, false);
+    assert.doesNotThrow(() => DreamEngine.interpret(null, {}));
+  });
+
+  it('เลขจากตำราฝันเทียบกับเลขถูกโฉลกตามวันเกิดได้', () => {
+    const r = DreamEngine.interpret('ฝันเห็นงูใหญ่เลื้อยเข้าบ้าน', {
+      luckyNumbers: ['2', '4', '6'], badNumber: '1'
+    });
+    assert.strictEqual(r.available, true);
+    assert.ok(r.numbers.length > 0);
+    r.numbers.forEach(n => {
+      assert.strictEqual(typeof n.matchesOwnerLucky, 'boolean');
+      assert.strictEqual(typeof n.hasOwnerBadDigit, 'boolean');
+      // ถ้าเลขมีเลข 1 ต้องถูกทำเครื่องหมายว่าเป็นเลขกาลกิณี
+      if (n.value.includes('1')) assert.strictEqual(n.hasOwnerBadDigit, true);
+    });
+  });
+
+  console.log('\n--- SECTION 35: ด่านกันภาษาต่างประเทศหลุดถึงผู้ใช้ ---');
+
+  it('แยกส่วนคิดของโมเดลออกได้ แม้แท็กจะไม่ครบคู่', () => {
+    // แบบครบคู่
+    assert.strictEqual(parseOracleThinking('<think>คิดอยู่</think>คำตอบไทย').answer, 'คำตอบไทย');
+    // แบบมีแต่แท็กปิด ซึ่งโมเดลรุ่นใหม่ทำจริง
+    const closeOnly = parseOracleThinking("Here's a thinking process\n</think>\nหมายถึงโชคลาภ");
+    assert.strictEqual(closeOnly.answer, 'หมายถึงโชคลาภ');
+    assert.ok(!/[A-Za-z]{5}/.test(closeOnly.answer), 'ต้องตัดภาษาอังกฤษออกหมด');
+    // แบบมีแต่แท็กเปิด คือถูกตัดกลางคัน
+    assert.strictEqual(parseOracleThinking('คำตอบมาก่อน<think>ค้าง').answer, 'คำตอบมาก่อน');
+    // ไม่มีแท็กเลย
+    assert.strictEqual(parseOracleThinking('คำตอบล้วน').answer, 'คำตอบล้วน');
+  });
+
+  it('บล็อกคำตอบที่หลุดเป็นภาษาอังกฤษหรือภาษาจีน', () => {
+    assert.strictEqual(looksEnglish('ดวงคุณปีนี้ดีมาก ควรลุยงานเต็มที่'), false, 'ไทยล้วนต้องผ่าน');
+    assert.strictEqual(looksEnglish('Here is a thinking process about this'), true, 'อังกฤษต้องบล็อก');
+    // เคสจริงที่ผู้ใช้เจอ คำจีนติดท้ายคำตอบ
+    assert.strictEqual(looksEnglish('เพื่อความบันเทิงและแนวทาง仅供参考 ไม่สามารถแทนที่ได้'), true,
+      'ภาษาจีนต้องบล็อก');
+    assert.strictEqual(looksEnglish('การพยากรณ์นี้ です'), true, 'ภาษาญี่ปุ่นต้องบล็อก');
+    // ไทยที่มีศัพท์ปนนิดหน่อยต้องผ่าน
+    assert.strictEqual(looksEnglish('ดวงดี ปี ค.ศ. 2026 ลองใช้แอป LINE ดู'), false);
+    assert.strictEqual(looksEnglish(''), true, 'คำตอบว่างถือว่าใช้ไม่ได้');
+  });
+
+  it('ซ่อมคำตอบที่หลุดอักษรต่างประเทศมานิดเดียวได้ โดยไม่ต้องถามใหม่', () => {
+    const leaked = 'ระวังเรื่องที่คุณเก็บความรู้สึกไว้太多 (มาก) จนอีกฝ่ายไม่เข้าใจ';
+    const fixed = repairForeignChars(leaked);
+    assert.ok(!/[\u4E00-\u9FFF]/.test(fixed), 'ต้องตัดอักษรจีนออก');
+    assert.ok(fixed.includes('เก็บความรู้สึกไว้'), 'เนื้อความไทยต้องอยู่ครบ');
+    assert.strictEqual(looksEnglish(fixed), false, 'ซ่อมแล้วต้องผ่านด่านภาษา');
+
+    // หลุดเยอะแปลว่าตอบผิดภาษาทั้งก้อน ซ่อมไม่ได้ ต้องถามใหม่
+    const heavy = 'แนวทาง仅供参考不能代替专业意见请咨询专家以获得更准确的建议谢谢您';
+    assert.strictEqual(looksEnglish(repairForeignChars(heavy)), true, 'หลุดเยอะต้องยังถูกบล็อก');
+  });
+
+  console.log('\n--- SECTION 36: ชั้นเรียบเรียงให้รู้สึกว่าใช่ตัวเอง ---');
+
+  it('ประกอบข้อเท็จจริงจากผลคำนวณจริง และแยกสิ่งที่ระบบไม่รู้ออกมาชัดเจน', () => {
+    const analysis = LifeDomainsEngine.analyze({
+      birthDate: '1998-06-27', birthTime: null, gender: 'male'
+    });
+    const sheet = buildFactSheet(analysis, {});
+    assert.strictEqual(sheet.available, true);
+
+    // ต้องมีกรอบสิ่งที่ไม่รู้ เพื่อกัน AI พูดเหมือนรู้จริง
+    assert.ok(sheet.unknownTh.includes('ไม่รู้ว่าตอนนี้โสดหรือมีคู่'));
+    assert.ok(sheet.unknownTh.includes('ไม่ทราบเวลาเกิด'), 'ไม่กรอกเวลาต้องบอกว่าดูภพไม่ได้');
+
+    // ต้องไม่มีคะแนนดิบหลุดไปให้ AI พูดต่อ
+    assert.ok(!/\d{2}\s*คะแนน/.test(sheet.factsTh), 'ห้ามส่งคะแนนดิบให้ AI');
+
+    // ธาตุประจำตัวกับธาตุเจ้าเรือนต้องแยกกันชัด เพราะโมเดลเคยสับสน
+    assert.ok(sheet.factsTh.includes('ธาตุประจำตัว'));
+    assert.ok(sheet.factsTh.includes('ธาตุเจ้าเรือน'));
+    assert.ok(sheet.factsTh.includes('ห้ามเอาไปสลับกัน'));
+  });
+
+  it('คำสั่งที่ส่งให้ AI ต้องมีกฎกันมั่วครบทุกข้อที่เคยพลาดมาแล้ว', () => {
+    const analysis = LifeDomainsEngine.analyze({ birthDate: '1998-06-27', birthTime: '09:30' });
+    const prompt = buildResonancePrompt(buildFactSheet(analysis, {}));
+
+    assert.ok(prompt.includes('ห้ามฟันธงเวลา'), 'ต้องห้ามฟันธงเวลา');
+    assert.ok(prompt.includes('ห้ามพูดตัวเลขคะแนน'), 'ต้องห้ามพูดคะแนน');
+    assert.ok(prompt.includes('ห้ามล็อกว่าโสดหรือมีคู่'), 'ต้องบังคับแยกโสดกับมีคู่');
+    assert.ok(prompt.includes('ภาษาจีน'), 'ต้องห้ามภาษาจีน');
+    assert.ok(prompt.includes('ห้ามสลับกัน'), 'ต้องกันธาตุสลับกัน');
+
+    // ต้องมีวันเวลาปัจจุบัน ไม่งั้น AI จะอ้างปีเก่า
+    const nowYear = new Date().getFullYear() + 543;
+    assert.ok(prompt.includes(String(nowYear)), 'ต้องบอกปีปัจจุบันเป็น พ.ศ.');
+
+    // คำกลวงต้องถูกสั่งห้ามทุกคำ
+    BANNED_VAGUE_TH.forEach(w => {
+      assert.ok(prompt.includes(w), 'ต้องสั่งห้ามคำกลวง: ' + w);
+    });
+
+    // คำสั่งเองต้องเป็นภาษาไทย ไม่มีอังกฤษปน
+    assert.ok(!/[A-Za-z]{4}/.test(prompt), 'คำสั่งต้องเป็นภาษาไทยล้วน');
+  });
+
+  it('เลือกตัวอย่างชีวิตตามช่วงวัยได้ถูกต้อง', () => {
+    assert.strictEqual(lifeStageOf(20).id, 'student');
+    assert.strictEqual(lifeStageOf(28).id, 'early-career');
+    assert.strictEqual(lifeStageOf(35).id, 'building');
+    assert.strictEqual(lifeStageOf(50).id, 'peak');
+    assert.strictEqual(lifeStageOf(70).id, 'senior');
+    assert.strictEqual(lifeStageOf(null), null, 'ไม่รู้อายุต้องไม่เดา');
+    // ทุกช่วงวัยต้องมีตัวอย่างที่จับต้องได้
+    [20, 28, 35, 50, 70].forEach(age => {
+      const st = lifeStageOf(age);
+      assert.ok(st.concernsTh.length >= 3, 'ต้องมีเรื่องที่วัยนี้เจอ');
+      assert.ok(!/[A-Za-z]/.test(st.concernsTh.join('')), 'ต้องเป็นภาษาไทยล้วน');
+    });
+  });
+
+  it('คนเกิดต่างวัน ต้องได้ข้อเท็จจริงที่ต่างกันจริง', () => {
+    const a = buildFactSheet(LifeDomainsEngine.analyze({ birthDate: '1998-06-27' }), {});
+    const b = buildFactSheet(LifeDomainsEngine.analyze({ birthDate: '1975-01-15' }), {});
+    const c = buildFactSheet(LifeDomainsEngine.analyze({ birthDate: '2005-11-03' }), {});
+    assert.notStrictEqual(a.factsTh, b.factsTh, 'คนละวันเกิดต้องได้ข้อมูลต่างกัน');
+    assert.notStrictEqual(b.factsTh, c.factsTh);
+    assert.notStrictEqual(a.stage.id, c.stage.id, 'คนละวัยต้องได้ช่วงวัยต่างกัน');
   });
 
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {

@@ -13,6 +13,7 @@ import { Storage } from '../core/storage.js';
 import { SoundManager } from '../core/sound.js';
 import { LifeDomainsEngine } from '../engines/life-domains.js';
 import { OracleAIService } from '../services/oracle-ai.js';
+import { buildFactSheet, buildResonancePrompt, RESONANCE_NOTE_TH } from '../services/resonance.js';
 import { GLOSSARY } from '../core/glossary.js';
 import { ToastManager } from '../components/toast.js';
 
@@ -95,6 +96,19 @@ export class ReadingView {
         ${this.renderIdentityCard(name, meta, profile)}
         ${meta.hasTime ? '' : this.renderTimeWarning()}
         ${this.renderColorStrip(meta.taksa)}
+
+        <section class="identity-card resonance-card">
+          <div class="identity-eyebrow">✨ อ่านตัวตนแบบเจาะจง</div>
+          <h2 class="resonance-title">นี่คือคุณ</h2>
+          <p class="resonance-sub">ผลคำนวณข้างบนเป็นตัวเลขและศัพท์ตำรา
+          กดปุ่มนี้แล้วหมอดูจะเล่าใหม่เป็นภาษาคนทั่วไป
+          ว่าดวงชุดนี้ออกมาเป็นนิสัยและชีวิตประจำวันของคุณอย่างไร</p>
+          <button class="btn btn-primary" id="resonance-btn" style="margin-top: var(--space-3);">
+            <span>✨ เล่าตัวตนของฉันให้ฟัง</span>
+          </button>
+          <div id="resonance-answer" class="ai-answer" hidden></div>
+          <div class="source-badge" style="margin-top: var(--space-3);">${escapeHtml(RESONANCE_NOTE_TH)}</div>
+        </section>
 
         <div class="domain-nav" role="tablist" aria-label="เลือกด้านของชีวิต">
           ${DOMAIN_ORDER.map((id, i) => `
@@ -306,6 +320,8 @@ export class ReadingView {
     }
 
   static bindEvents(container, result, profile) {
+    this.bindResonance(container, result, profile);
+
     // สลับแท็บด้านของชีวิต
     container.querySelectorAll('.domain-nav-btn').forEach(btn => {
       btn.addEventListener('click', () => {
@@ -474,6 +490,53 @@ export class ReadingView {
   }
 
   /** แปลง markdown อย่างง่ายจาก AI ให้เป็น HTML ที่ปลอดภัย */
+  /**
+   * เล่าตัวตนของผู้ใช้ด้วยภาษาคนทั่วไป
+   * ข้อเท็จจริงทั้งหมดมาจากผลคำนวณเท่านั้น ชั้นนี้เปลี่ยนแค่วิธีเล่า
+   */
+  static bindResonance(container, result, profile) {
+    const btn = container.querySelector('#resonance-btn');
+    const answer = container.querySelector('#resonance-answer');
+    if (!btn || !answer) return;
+
+    btn.addEventListener('click', async () => {
+      const sheet = buildFactSheet(result, profile);
+      if (!sheet.available) {
+        answer.hidden = false;
+        answer.innerHTML = `<div class="ai-error"><strong>ยังเล่าไม่ได้</strong><p>${escapeHtml(sheet.reasonTh)}</p></div>`;
+        return;
+      }
+
+      btn.disabled = true;
+      btn.querySelector('span').textContent = 'กำลังเรียบเรียง…';
+      answer.hidden = false;
+      answer.innerHTML = '<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span> กำลังอ่านดวงของคุณให้ละเอียด…</div>';
+
+      const res = await OracleAIService.sendChat(
+        [{ role: 'user', content: 'เล่าให้ฟังหน่อยว่าดวงชุดนี้ออกมาเป็นคนแบบไหน ชีวิตประจำวันเป็นยังไง' }],
+        {
+          purpose: 'reading:resonance',
+          context: buildResonancePrompt(sheet),
+          onRetry: (n) => {
+            answer.innerHTML = `<div class="ai-loading"><span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span> สายยังไม่นิ่ง กำลังลองอีกครั้ง (ครั้งที่ ${n + 1})…</div>`;
+          }
+        }
+      );
+
+      btn.disabled = false;
+      btn.querySelector('span').textContent = '✨ เล่าอีกครั้ง';
+      if (!res.success) {
+        answer.innerHTML = `<div class="ai-error"><strong>ยังเล่าไม่สำเร็จ</strong><p>${escapeHtml(res.message)}</p></div>`;
+        return;
+      }
+      answer.innerHTML = `<div class="ai-answer-body">
+        <div class="ai-answer-tag">✦ ตัวตนของคุณ</div>
+        ${this.formatAnswer(res.answer)}
+      </div>`;
+      SoundManager.play('reading-complete');
+    });
+  }
+
   static formatAnswer(text) {
     const lines = String(text || '').split('\n');
     let html = '';
