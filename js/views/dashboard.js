@@ -218,7 +218,7 @@ export class DashboardView {
             <div class="editorial-card theme-unified" onclick="location.hash='#reading'" style="cursor: pointer; border: 2px solid var(--color-gold-bright); grid-column: 1 / -1; background: radial-gradient(circle at top left, rgba(212, 175, 55, 0.12) 0%, var(--color-surface-elevated) 100%);">
               <span class="tradition-tag" style="background: rgba(212, 175, 55, 0.2); color: var(--color-gold-bright);">แนะนำ: ครบจบในหน้าเดียว</span>
               <h4 style="font-size: var(--font-size-xl); margin: var(--space-2) 0;">🔮 ดูดวงของฉัน — การงาน การเงิน ความรัก สุขภาพ โชคลาภ</h4>
-              <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">คำนวณจากวันเกิดคุณจริง ๆ ทั้งสีมงคล เลขมงคล ปีชง ธาตุประจำตัว พร้อมคำอธิบายภาษาชาวบ้าน ตัวอย่างการใช้ และปุ่มให้ AI อธิบายเจาะลึกทุกหัวข้อ</p>
+              <p style="font-size: var(--font-size-sm); color: var(--color-text-secondary);">คำนวณจากวันเกิดคุณจริง ๆ ทั้งสีมงคล เลขมงคล ปีชง ธาตุประจำตัว พร้อมคำอธิบายภาษาชาวบ้าน ตัวอย่างการใช้ และปุ่มให้หมอดูอธิบายเจาะลึกทุกหัวข้อ</p>
             </div>
             <div class="editorial-card theme-western" onclick="location.hash='#traditions'" style="cursor: pointer;">
               <span class="tradition-tag">โหราศาสตร์สากล</span>

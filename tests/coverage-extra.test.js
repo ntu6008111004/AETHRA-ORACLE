@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 /**
  * AETHRA ORACLE — เทสเสริมเพื่อปิด coverage ส่วนที่เหลือ
  * (เสียงสังเคราะห์, ที่เก็บข้อมูล, เลขศาสตร์เลขมาสเตอร์, ความเข้ากันของธาตุ, unified)
@@ -781,6 +782,81 @@ export function runCoverageExtraTests(it) {
     // ไทยล้วนต้องไม่ถูกแก้อะไรเลย
     const pure = 'ดวงคุณปีนี้ดีมาก ควรลุยงานเต็มที่';
     assert.strictEqual(repairForeignChars(pure), pure);
+  });
+
+
+  it('ทุกชั้นของดวงปีต้องมีทางแก้ ไม่ใช่บอกแค่ปัญหา', () => {
+    // ผู้ใช้บอกตรง ๆ ว่าบอกแค่ปัญหาแล้วจบไม่มีประโยชน์ ต้องบอกวิธีรับมือด้วย
+    const people = ['1998-06-27', '1986-06-27', '1974-06-27', '1990-02-14', '2001-12-03'];
+    people.forEach(bd => {
+      const r = YearlyPersonalEngine.analyze({ birthDate: bd }, new Date(2026, 5, 1));
+      r.layers.forEach(l => {
+        assert.ok(l.remedyTh && l.remedyTh.length > 25, bd + ' ชั้น ' + l.titleTh + ' ต้องมีทางแก้');
+        assert.ok(l.whyTh && l.whyTh.length > 25, bd + ' ชั้น ' + l.titleTh + ' ต้องอธิบายว่าทำไม');
+        assert.ok(l.remedyTitleTh, 'ต้องมีหัวข้อทางแก้');
+        const all = l.remedyTh + (l.remedyStepsTh || []).join(' ') + l.whyTh;
+        assert.ok(!/[A-Za-z]/.test(all), 'ต้องเป็นภาษาไทยล้วน');
+      });
+      // สามชั้นแรกต้องมีขั้นตอนที่ทำได้จริง
+      assert.ok(r.layers[0].remedyStepsTh.length >= 3, 'ชั้นธีมปีต้องมีขั้นตอนอย่างน้อยสามข้อ');
+      assert.ok(r.layers[1].remedyStepsTh.length >= 3, 'ชั้นปีชงต้องมีขั้นตอน');
+      assert.ok(r.layers[2].remedyStepsTh.length >= 3, 'ชั้นธาตุต้องมีขั้นตอน');
+    });
+  });
+
+  it('การงานและการเงินปีนี้ต้องมีทั้งรายละเอียดและทางแก้', () => {
+    const r = YearlyPersonalEngine.analyze({ birthDate: '1998-06-27' }, new Date(2026, 5, 1));
+    assert.strictEqual(r.domains.length, 2);
+    r.domains.forEach(d => {
+      assert.ok(d.detailTh.length > 40, d.titleTh + ' รายละเอียดต้องยาวพอ');
+      assert.ok(d.remedyTh.length > 30, d.titleTh + ' ต้องมีทางแก้');
+    });
+    // ความรักต้องแยกสองกรณีเป็นฟิลด์คนละอัน ไม่ใช่ยัดรวมกัน
+    assert.ok(r.love.singleTh.length > 40, 'กรณีคนโสดต้องละเอียดพอ');
+    assert.ok(r.love.coupledTh.length > 40, 'กรณีคนมีคู่ต้องละเอียดพอ');
+    assert.notStrictEqual(r.love.singleTh, r.love.coupledTh, 'สองกรณีต้องไม่เหมือนกัน');
+  });
+
+  it('ผลวิเคราะห์ชื่อต้องมีคำแนะนำที่ทำได้จริง และไม่สั่งให้เปลี่ยนชื่อ', () => {
+    ['กนกวรรณ', 'สมชาย', 'ธนพล'].forEach(nm => {
+      const r = ThaiNameEngine.analyze(nm, '1998-06-27');
+      assert.strictEqual(r.available, true);
+      assert.ok(r.adviceStepsTh.length >= 3, nm + ' ต้องมีคำแนะนำอย่างน้อยสามข้อ');
+      assert.ok(r.supportSummaryTh.length > 50, nm + ' ต้องสรุปว่าชื่อหนุนด้านไหน');
+      const all = r.adviceStepsTh.join(' ') + r.supportSummaryTh;
+      assert.ok(!/[A-Za-z]/.test(all), 'ต้องเป็นภาษาไทยล้วน');
+      assert.ok(!/ต้องเปลี่ยนชื่อ/.test(all), 'ห้ามสั่งให้เปลี่ยนชื่อ');
+    });
+    // ชื่อที่มีอักษรกาลกิณีต้องบอกว่าไม่จำเป็นต้องเปลี่ยน
+    const withBad = ThaiNameEngine.analyze('กนกวรรณ', '1998-06-27');
+    assert.ok(withBad.adviceStepsTh.join(' ').includes('ไม่จำเป็นต้องเปลี่ยน'));
+  });
+
+
+  it('ข้อความที่ผู้ใช้เห็น ต้องไม่เอ่ยถึงเทคโนโลยีเบื้องหลัง', () => {
+    // ผู้ใช้บอกว่าการเขียนว่าให้ AI ตีความ ทำให้ความน่าเชื่อถือของเว็บลดลง
+    // เพราะคนมาดูดวงอยากรู้สึกว่าคุยกับหมอดู ไม่ใช่คุยกับโปรแกรม
+    // จึงล็อกไว้ว่าข้อความที่ผู้ใช้เห็นต้องไม่มีคำพวกนี้
+    const files = [
+      'js/views/reading-view.js', 'js/views/consultation.js', 'js/views/match-view.js',
+      'js/views/tarot-view.js', 'js/views/other-view.js', 'js/views/dashboard.js',
+      'js/views/year-view.js', 'js/views/dream-view.js', 'js/core/i18n.js'
+    ];
+    const banned = ['ให้ AI', 'หมอดู AI', 'เรียก AI', 'ผู้ให้บริการ AI',
+      'ปัญญาประดิษฐ์', 'เอไอ', 'แชตบอต', 'แชทบอท'];
+
+    files.forEach(f => {
+      const src = readFileSync(f, 'utf8');
+      src.split(String.fromCharCode(10)).forEach((line, i) => {
+        const trimmed = line.trim();
+        // ข้ามคอมเมนต์ เพราะผู้ใช้ไม่เห็น
+        if (trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')) return;
+        banned.forEach(b => {
+          assert.ok(!line.includes(b),
+            f + ' บรรทัด ' + (i + 1) + ' มีคำที่ห้าม: ' + b);
+        });
+      });
+    });
   });
 
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {

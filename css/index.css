@@ -2180,3 +2180,68 @@ html:lang(th) h3 {
   .panel-head { flex-direction: column; gap: var(--space-3); }
   .level-pill { align-self: flex-start; }
 }
+
+/* --- ชั้นดวงปีแบบละเอียด พร้อมทางแก้ --- */
+.layer-stack { display: grid; gap: var(--space-4); }
+.layer-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.layer-head .layer-num {
+  flex-shrink: 0; background: rgba(197,160,89,0.14); border: 1px solid rgba(197,160,89,0.35);
+  border-radius: 999px; padding: 3px 11px; font-size: 11px; color: var(--color-gold-bright); margin: 0;
+}
+.layer-head h3 { font-size: var(--font-size-base); color: var(--color-text-primary); margin: 0; }
+.layer-detail { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.9; margin-bottom: var(--space-3); }
+
+.layer-why { margin-bottom: var(--space-3); }
+.layer-why summary {
+  cursor: pointer; font-size: 12px; color: var(--color-gold-light);
+  padding: 6px 0; list-style: none; user-select: none;
+}
+.layer-why summary::before { content: '▸ '; }
+.layer-why[open] summary::before { content: '▾ '; }
+.layer-why p {
+  font-size: 13px; color: var(--color-text-muted); line-height: 1.85;
+  padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 8px;
+}
+
+.remedy-box {
+  background: rgba(72,187,120,0.06); border: 1px solid rgba(72,187,120,0.28);
+  border-radius: 12px; padding: var(--space-4); margin-bottom: var(--space-3);
+}
+.remedy-title { font-size: var(--font-size-sm); font-weight: 700; color: #68D391; margin-bottom: 7px; }
+.remedy-lead { font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.85; margin-bottom: 10px; }
+.remedy-steps { margin: 0; padding-left: 20px; display: grid; gap: 9px; }
+.remedy-steps li { font-size: 13px; color: var(--color-text-secondary); line-height: 1.85; padding-left: 3px; }
+.remedy-steps li::marker { color: #68D391; font-weight: 700; }
+
+.section-heading {
+  font-family: var(--font-serif); font-size: var(--font-size-lg);
+  color: var(--color-gold-light); margin: var(--space-6) 0 6px;
+}
+.section-lead { font-size: 13px; color: var(--color-text-secondary); line-height: 1.85; margin-bottom: var(--space-4); }
+
+.ds-body { flex: 1; min-width: 0; }
+.ds-remedy {
+  margin-top: 9px; font-size: 13px; color: var(--color-text-primary); line-height: 1.85;
+  background: rgba(72,187,120,0.07); border-radius: 8px; padding: 8px 11px;
+}
+.ds-remedy span { color: #68D391; font-weight: 700; }
+.domain-strip-item.is-love { border-left-color: #F687B3; }
+.love-split { display: grid; gap: 10px; margin-top: 8px; }
+.love-case { background: rgba(246,135,179,0.06); border: 1px solid rgba(246,135,179,0.25); border-radius: 10px; padding: 10px 12px; }
+.love-tag { display: inline-block; font-size: 11px; font-weight: 700; color: #F687B3; margin-bottom: 5px; }
+.love-case p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.85; }
+
+/* --- ตัวอักษรชื่อ ขนาดใหญ่อ่านง่าย --- */
+.letter-row.is-large { gap: 9px; }
+.letter-chip.is-large { min-width: 62px; padding: 11px 10px; border-radius: 12px; }
+.letter-chip.is-large b { font-size: 30px; line-height: 1.15; }
+.letter-chip.is-large small { font-size: 11px; margin-top: 5px; }
+.support-grid.is-roomy { grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 10px; }
+.support-chip.is-roomy { padding: 13px 14px; text-align: left; }
+.support-chip.is-roomy b { font-size: 13px; margin-bottom: 4px; }
+.support-chip.is-roomy small { font-size: 12px; line-height: 1.7; }
+
+@media (max-width: 560px) {
+  .letter-chip.is-large { min-width: 54px; padding: 9px 8px; }
+  .letter-chip.is-large b { font-size: 26px; }
+}

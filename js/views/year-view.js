@@ -145,29 +145,62 @@ export class YearView {
           <div class="level-pill ${LEVEL_CLASS[y.level] || 'lv-neutral'}">${esc(y.levelTh.split(' ')[0])}</div>
         </div>
 
-        <div class="layer-grid">
+        <div class="layer-stack">
           ${y.layers.map((l, i) => `
             <article class="layer-card">
-              <div class="layer-num">ชั้นที่ ${i + 1}</div>
-              <h3>${esc(l.titleTh)}</h3>
+              <div class="layer-head">
+                <span class="layer-num">ชั้นที่ ${i + 1}</span>
+                <h3>${esc(l.titleTh)}</h3>
+              </div>
               <div class="layer-value">${esc(l.valueTh)}</div>
-              <p>${esc(l.detailTh)}</p>
+              <p class="layer-detail">${esc(l.detailTh)}</p>
+
+              ${l.whyTh ? `
+              <details class="layer-why">
+                <summary>ทำไมตำราถึงอ่านแบบนี้</summary>
+                <p>${esc(l.whyTh)}</p>
+              </details>` : ''}
+
+              <div class="remedy-box">
+                <div class="remedy-title">🛠️ ${esc(l.remedyTitleTh || 'รับมือยังไง')}</div>
+                <p class="remedy-lead">${esc(l.remedyTh)}</p>
+                ${(l.remedyStepsTh || []).length ? `
+                <ol class="remedy-steps">
+                  ${l.remedyStepsTh.map(st => `<li>${esc(st)}</li>`).join('')}
+                </ol>` : ''}
+              </div>
+
               <div class="source-badge">มาจาก: ${esc(l.sourceTh)}</div>
             </article>`).join('')}
         </div>
 
+        <h3 class="section-heading">แต่ละด้านของชีวิตปีนี้</h3>
         <div class="domain-strip">
+          ${(y.domains || []).map(d => `
           <div class="domain-strip-item">
-            <span class="ds-icon">💼</span>
-            <div><b>การงานปีนี้</b><p>${esc(y.workTh)}</p></div>
-          </div>
-          <div class="domain-strip-item">
-            <span class="ds-icon">💰</span>
-            <div><b>การเงินปีนี้</b><p>${esc(y.moneyTh)}</p></div>
-          </div>
-          <div class="domain-strip-item">
-            <span class="ds-icon">💗</span>
-            <div><b>ความรักปีนี้</b><p>${esc(y.loveTh)}</p></div>
+            <span class="ds-icon">${d.emoji}</span>
+            <div class="ds-body">
+              <b>${esc(d.titleTh)}</b>
+              <p>${esc(d.detailTh)}</p>
+              <div class="ds-remedy"><span>🛠️ ทางแก้</span> ${esc(d.remedyTh)}</div>
+            </div>
+          </div>`).join('')}
+
+          <div class="domain-strip-item is-love">
+            <span class="ds-icon">${y.love.emoji}</span>
+            <div class="ds-body">
+              <b>${esc(y.love.titleTh)}</b>
+              <div class="love-split">
+                <div class="love-case">
+                  <span class="love-tag">ถ้าตอนนี้ยังโสด</span>
+                  <p>${esc(y.love.singleTh)}</p>
+                </div>
+                <div class="love-case">
+                  <span class="love-tag">ถ้าตอนนี้มีคู่แล้ว</span>
+                  <p>${esc(y.love.coupledTh)}</p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -195,20 +228,30 @@ export class YearView {
           </div>
         </div>
 
-        <div class="letter-row">
+        <h3 class="section-heading">ชื่อของคุณ ทีละตัวอักษร</h3>
+        <p class="section-lead">ตำราทักษาแบ่งพยัญชนะและสระไทยเป็นแปดวรรค แต่ละวรรคเป็นของดาวดวงหนึ่ง
+        ดาวดวงไหนตกตำแหน่งอะไรของคุณ อักษรวรรคนั้นก็หนุนเรื่องนั้น
+        ตัวที่เป็นสีแดงคือตัวที่ตำราแนะนำให้เลี่ยง</p>
+
+        <div class="letter-row is-large">
           ${n.breakdown.map(b => `
-            <span class="letter-chip${b.isKalakini ? ' is-bad' : ''}"
-              title="${esc(b.letter)} อยู่${esc(b.varkaTh)}${b.positionTh ? ' ตกตำแหน่ง' + esc(b.positionTh) : ''}">
+            <span class="letter-chip is-large${b.isKalakini ? ' is-bad' : ''}">
               <b>${esc(b.letter)}</b>
               <small>${esc(b.positionTh || b.planetTh)}</small>
             </span>`).join('')}
         </div>
 
+        <div class="notice-card is-info" style="text-align:left; margin-bottom: var(--space-4);">
+          <span class="notice-icon">📖</span>
+          <div><p>${esc(n.supportSummaryTh)}</p></div>
+        </div>
+
         ${n.supports.length ? `
-        <div class="support-grid">
+        <h3 class="section-heading">ชื่อนี้หนุนด้านไหนบ้าง</h3>
+        <div class="support-grid is-roomy">
           ${n.supports.map(sp => `
-            <div class="support-chip">
-              <b>${esc(sp.labelTh)} × ${sp.count}</b>
+            <div class="support-chip is-roomy">
+              <b>${esc(sp.labelTh)} มี ${sp.count} ตัวอักษร</b>
               <small>${esc(sp.supportTh)}</small>
             </div>`).join('')}
         </div>` : ''}
@@ -217,11 +260,18 @@ export class YearView {
           <h3>อักษรที่ไม่ถูกโฉลกกับคนเกิด${esc(n.birthDayTh)}</h3>
           <p>คุณเกิด${esc(n.birthDayTh)} ดาว${esc(n.kalakiniPlanetTh)}จึงตกตำแหน่งกาลกิณีของคุณ
           อักษรกลุ่มนี้คือกลุ่มที่ตำราแนะนำให้เลี่ยงตอนตั้งชื่อ</p>
-          <div class="letter-row" style="margin-top:8px;">
-            ${n.kalakiniAllLetters.slice(0, 24).map(l => `<span class="letter-chip is-bad"><b>${esc(l)}</b></span>`).join('')}
+          <div class="letter-row is-large" style="margin-top:10px;">
+            ${n.kalakiniAllLetters.slice(0, 24).map(l => `<span class="letter-chip is-large is-bad"><b>${esc(l)}</b></span>`).join('')}
           </div>
           <div class="source-badge">มาจาก: ${esc(n.sourceTh)}</div>
         </article>
+
+        <div class="remedy-box" style="margin-top: var(--space-4);">
+          <div class="remedy-title">🛠️ แล้วควรทำยังไงต่อ</div>
+          <ol class="remedy-steps">
+            ${n.adviceStepsTh.map(a => `<li>${esc(a)}</li>`).join('')}
+          </ol>
+        </div>
 
         <div class="source-badge">${esc(n.methodNoteTh)}</div>
       </section>

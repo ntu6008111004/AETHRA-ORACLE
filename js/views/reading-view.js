@@ -304,10 +304,10 @@ export class ReadingView {
           <div class="ai-block-head">
             <div>
               <strong>อยากรู้ลึกกว่านี้เรื่อง${escapeHtml(domain.titleTh)}?</strong>
-              <p>ให้ AI อ่านผลคำนวณข้างบนแล้วอธิบายเจาะลึกเป็นภาษาคนให้คุณโดยเฉพาะ</p>
+              <p>ให้หมอดูอ่านผลคำนวณข้างบน แล้วอธิบายเจาะลึกเป็นภาษาคนให้คุณโดยเฉพาะ</p>
             </div>
             <button type="button" class="btn btn-primary ai-expand-btn" data-domain="${domain.id}">
-              <span>ให้ AI อธิบายเพิ่ม</span>
+              <span>ให้หมอดูอธิบายเพิ่ม</span>
             </button>
           </div>
           <div class="ai-answer" data-answer="${domain.id}" hidden></div>
@@ -377,7 +377,7 @@ export class ReadingView {
       popover.querySelector('.glossary-close').addEventListener('click', () => { popover.hidden = true; });
     });
 
-    // ให้ AI อธิบายเพิ่ม
+    // ปุ่มให้หมอดูอธิบายเพิ่ม
     container.querySelectorAll('.ai-expand-btn').forEach(btn => {
       btn.addEventListener('click', () => this.askAI(container, result, profile, btn.dataset.domain, null, btn));
     });
@@ -401,7 +401,7 @@ export class ReadingView {
     });
   }
 
-  /** สร้างบริบทให้ AI จากผลคำนวณจริง เพื่อไม่ให้ AI มั่วตัวเลขเอง */
+  /** สร้างบริบทจากผลคำนวณจริง เพื่อไม่ให้คำอธิบายมั่วตัวเลขเอง */
   static buildContext(result, profile, domainId) {
     const { meta, domains } = result;
     const d = domains[domainId];
@@ -464,10 +464,10 @@ export class ReadingView {
     if (!response.success) {
       answerBox.innerHTML = `
         <div class="ai-error">
-          <strong>ยังเรียก AI ไม่สำเร็จ</strong>
+          <strong>หมอดูยังตอบไม่ได้ตอนนี้</strong>
           <p>${escapeHtml(response.message)}</p>
           <p class="ai-error-hint">ลองกดปุ่มอีกครั้งใน 1-2 นาที ระบบจะต่อสายใหม่ให้เอง
-          ส่วนผลดวงที่คำนวณไว้ด้านบนดูได้ตามปกติโดยไม่ต้องใช้ AI</p>
+          ส่วนผลดวงที่คำนวณไว้ด้านบนดูได้ตามปกติ ไม่ต้องรอส่วนนี้</p>
         </div>`;
       SoundManager.play('error-alert');
       return;
@@ -483,13 +483,13 @@ export class ReadingView {
     SoundManager.play('reading-complete');
 
     Storage.addReadingToHistory({
-      type: 'AI Reading',
+      type: 'คำอธิบายจากหมอดู',
       domain: domain.titleTh,
       question: question || 'ขออธิบายเพิ่ม'
     });
   }
 
-  /** แปลง markdown อย่างง่ายจาก AI ให้เป็น HTML ที่ปลอดภัย */
+  /** แปลงข้อความที่ได้กลับมาให้เป็นหน้าเว็บที่ปลอดภัย */
   /**
    * เล่าตัวตนของผู้ใช้ด้วยภาษาคนทั่วไป
    * ข้อเท็จจริงทั้งหมดมาจากผลคำนวณเท่านั้น ชั้นนี้เปลี่ยนแค่วิธีเล่า

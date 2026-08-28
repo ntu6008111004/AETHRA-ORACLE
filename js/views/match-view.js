@@ -406,9 +406,9 @@ export class MatchView {
             <div class="ai-block-head">
               <div>
                 <strong>อยากรู้วิธีอยู่ด้วยกันให้รอด?</strong>
-                <p>ให้ AI อ่านผลคู่นี้แล้วแนะนำวิธีปรับตัวเข้าหากันแบบเจาะจง</p>
+                <p>ให้หมอดูอ่านผลคู่นี้ แล้วแนะนำวิธีปรับตัวเข้าหากันแบบเจาะจง</p>
               </div>
-              <button type="button" class="btn btn-primary" id="match-ai-btn"><span>ให้ AI แนะนำ</span></button>
+              <button type="button" class="btn btn-primary" id="match-ai-btn"><span>ให้หมอดูแนะนำ</span></button>
             </div>
             <div class="ai-answer" id="match-ai-answer" hidden></div>
           </div>
@@ -439,9 +439,9 @@ export class MatchView {
         );
 
         btn.disabled = false;
-        btn.querySelector('span').textContent = 'ให้ AI แนะนำ';
+        btn.querySelector('span').textContent = 'ให้หมอดูแนะนำ';
         if (!response.success) {
-          answerBox.innerHTML = `<div class="ai-error"><strong>ยังเรียก AI ไม่สำเร็จ</strong><p>${escapeHtml(response.message)}</p></div>`;
+          answerBox.innerHTML = `<div class="ai-error"><strong>หมอดูยังตอบไม่ได้ตอนนี้</strong><p>${escapeHtml(response.message)}</p></div>`;
           return;
         }
         answerBox.innerHTML = `

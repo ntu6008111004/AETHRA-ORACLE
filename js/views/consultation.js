@@ -1,5 +1,5 @@
 /**
- * AETHRA ORACLE — AI-powered consultation room.
+ * AETHRA ORACLE — ห้องปรึกษาหมอดู
  */
 
 import { Storage } from '../core/storage.js';
@@ -113,7 +113,7 @@ export class ConsultationView {
 
           <div id="consultation-messages-stream" class="consultation-messages" aria-live="polite"></div>
           <div id="consultation-suggestions" class="consultation-suggestions"></div>
-          <p class="consultation-privacy-note">คำถามและเฉพาะผลคำนวณที่จำเป็นจะถูกส่งให้ผู้ให้บริการ AI โดยไม่ส่งชื่อจริง วันเกิด หรือสถานที่เกิดดิบ</p>
+          <p class="consultation-privacy-note">คำถามและเฉพาะผลคำนวณที่จำเป็นจะถูกส่งไปประมวลผลที่เซิร์ฟเวอร์ โดยไม่ส่งชื่อจริง วันเกิด หรือสถานที่เกิดของคุณออกไป</p>
 
           <div class="consultation-composer">
             <textarea id="consultation-input" class="consultation-textarea" rows="1" placeholder="${I18n.t('consult_input_placeholder')}"></textarea>

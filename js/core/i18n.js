@@ -234,7 +234,7 @@ export const translations = {
     consult_topic_spiritual: "การค้นหาตัวตนและจิตวิญญาณ",
     consult_input_placeholder: "พิมพ์สิ่งที่อยากปรึกษา หรือหัวข้อที่กำลังคิดวนอยู่...",
     consult_send_btn: "ปรึกษา",
-    consult_offline_warning: "การปรึกษาผ่าน AI ต้องใช้อินเทอร์เน็ต คุณยังสามารถดูข้อมูลและประวัติที่บันทึกไว้ได้",
+    consult_offline_warning: "ห้องปรึกษาต้องใช้อินเทอร์เน็ต ตอนนี้ยังดูผลดวงและประวัติที่บันทึกไว้ได้ตามปกติ",
 
     // Profile
     profile_title: "ผังดวงชะตาส่วนบุคคล",
