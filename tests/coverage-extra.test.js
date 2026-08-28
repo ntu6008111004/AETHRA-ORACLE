@@ -18,6 +18,8 @@ import { parseOracleThinking, looksEnglish, repairForeignChars } from '../js/ser
 import { buildFactSheet, buildResonancePrompt, BANNED_VAGUE_TH } from '../js/services/resonance.js';
 import { lifeStageOf } from '../js/data/modern-context.js';
 import { DailyPersonalEngine } from '../js/engines/daily-personal.js';
+import { YearlyPersonalEngine } from '../js/engines/yearly-personal.js';
+import { ThaiNameEngine } from '../js/engines/thai-name.js';
 import { buildVersionMap, stampHtml } from '../scripts/stamp-version.js';
 import { AstrologyEngine } from '../js/engines/astrology.js';
 import { IChingEngine } from '../js/engines/iching.js';
@@ -611,6 +613,152 @@ export function runCoverageExtraTests(it) {
       assert.ok(!/[一-鿿]/.test(all), 'ต้องไม่มีอักษรจีน: ' + f.titleTh);
     });
     assert.ok(r.methodNoteTh.includes('วันเกิดของคุณ'), 'ต้องบอกวิธีคำนวณให้ผู้ใช้รู้');
+  });
+
+
+  console.log('\n--- SECTION 38: บั๊กที่ตัวตรวจยืนยันแล้ว ---');
+
+  it('ลัคนาต้องตรงกับตำแหน่งดวงอาทิตย์ตอนพระอาทิตย์ขึ้น', () => {
+    // ข้อนี้พิสูจน์ด้วยฟิสิกส์ตรง ๆ ไม่ต้องเชื่อสูตรใคร
+    // ตอนพระอาทิตย์โผล่พ้นขอบฟ้า จุดลัคนาคือจุดที่ดวงอาทิตย์อยู่พอดี
+    // ของเดิมสลับเครื่องหมายในสูตร ทำให้ได้จุดตกซึ่งห่างออกไป 180 องศา
+    const cases = [
+      [2024, 3, 20, 23, 20, 13.7563, 100.5018],
+      [2024, 6, 20, 22, 55, 13.7563, 100.5018],
+      [2024, 3, 20, 23, 25, 18.7883, 98.9853]
+    ];
+    cases.forEach(([Y, M, D, h, m, lat, lon]) => {
+      const jd = AstrologyEngine.getJulianDay(Y, M, D, h, m);
+      const sun = AstrologyEngine.calculateSunLongitude(jd);
+      const asc = AstrologyEngine.calculateAscendant(jd, lat, lon);
+      let diff = ((asc - sun) % 360 + 360) % 360;
+      if (diff > 180) diff -= 360;
+      assert.ok(Math.abs(diff) < 8,
+        'ลัคนาต้องใกล้ตำแหน่งอาทิตย์ตอนขึ้น แต่ห่าง ' + diff.toFixed(1) + ' องศา');
+    });
+  });
+
+  it('เวลาเกิดต้องถูกแปลงเป็นเวลามาตรฐานก่อนคำนวณ ไม่ใช่ใช้ตรง ๆ', () => {
+    // ของเดิมเอาเวลาไทยไปใช้เป็นเวลามาตรฐานกรีนิชตรง ๆ
+    // ลัคนาจึงเพี้ยนไปราวสามราศีครึ่งสำหรับคนไทยทุกคน
+    const th = AstrologyEngine.calculateChart('1998-06-27', '09:30', 13.7563, 100.5018, 7);
+    const gmt = AstrologyEngine.calculateChart('1998-06-27', '09:30', 13.7563, 100.5018, 0);
+    assert.ok(th.western.ascendant, 'ต้องคำนวณลัคนาได้');
+    assert.notStrictEqual(th.western.ascendant.nameTh, gmt.western.ascendant.nameTh,
+      'คนละเขตเวลาต้องได้ลัคนาคนละราศี');
+  });
+
+  it('เบอร์ที่พิมพ์ด้วยเลขไทยต้องอ่านได้ ไม่ใช่โดนลบทิ้งทั้งหมด', () => {
+    assert.strictEqual(normalizePhone('๐๘๑๒๓๔๕๖๗๘'), '0812345678');
+    assert.strictEqual(normalizePhone('081-234-5678'), '0812345678');
+    assert.strictEqual(normalizePhone('๐๘๑-234-๕๖๗๘'), '0812345678');
+  });
+
+  it('ข้อมูลที่เก็บไว้พังต้องไม่ทำให้ทั้งเว็บล่ม', () => {
+    const raw = globalThis.localStorage;
+    let stored = '{ นี่คือ json ที่พัง';
+    globalThis.localStorage = {
+      getItem: () => stored,
+      setItem: () => {},
+      removeItem: () => {},
+      clear: () => {}
+    };
+    try {
+      assert.doesNotThrow(() => Storage.getProfile(), 'ข้อมูลพังต้องไม่ทำให้ระเบิด');
+      const p1 = Storage.getProfile();
+      assert.strictEqual(typeof p1, 'object');
+      // ข้อมูลที่ไม่ใช่วัตถุก็ต้องไม่พัง
+      stored = '"เป็นข้อความเฉย ๆ"';
+      assert.doesNotThrow(() => Storage.getProfile());
+      stored = '[1,2,3]';
+      assert.doesNotThrow(() => Storage.getProfile());
+    } finally {
+      globalThis.localStorage = raw;
+    }
+  });
+
+  console.log('\n--- SECTION 39: ชื่อจริงตามทักษา ---');
+
+  it('อ่านชื่อไทยเทียบกับวันเกิดได้ และบอกอักษรกาลกิณีถูกต้อง', () => {
+    // คนเกิดวันพุธ ดาวอังคารตกกาลกิณี อักษรวรรคอังคารคือ จ ฉ ช ซ ฌ ญ
+    const wed = ThaiNameEngine.analyze('ธนพล', '1995-03-15');
+    assert.strictEqual(wed.available, true);
+    assert.ok(wed.kalakiniAllLetters.includes('ช'), 'คนเกิดวันพุธต้องเลี่ยงอักษรวรรคอังคาร');
+    assert.strictEqual(wed.kalakiniLetters.length, 0, 'ชื่อธนพลไม่มีอักษรกาลกิณีของคนวันพุธ');
+
+    // ชื่อที่มีอักษรกาลกิณีจริงต้องจับได้
+    const sat = ThaiNameEngine.analyze('กนกวรรณ', '1998-06-27');
+    assert.ok(sat.kalakiniLetters.length > 0, 'ต้องจับอักษรกาลกิณีในชื่อได้');
+    assert.ok(sat.verdictTh.includes('กาลกิณี'));
+  });
+
+  it('ไม่รู้วันเกิดหรือชื่อไม่ใช่ภาษาไทย ต้องบอกตรง ๆ ไม่เดา', () => {
+    const noBirth = ThaiNameEngine.analyze('สมชาย', null);
+    assert.strictEqual(noBirth.available, false);
+    assert.ok(noBirth.reasonTh.includes('วันเกิด'));
+
+    const english = ThaiNameEngine.analyze('John Smith', '1998-06-27');
+    assert.strictEqual(english.available, false);
+    assert.ok(english.reasonTh.includes('ภาษาไทย'));
+
+    assert.strictEqual(ThaiNameEngine.analyze('', '1998-06-27').available, false);
+  });
+
+  it('ไม่ให้คะแนนชื่อเป็นตัวเลข และไม่บอกให้เปลี่ยนชื่อ', () => {
+    const r = ThaiNameEngine.analyze('กนกวรรณ', '1998-06-27');
+    assert.strictEqual(r.score, undefined, 'ห้ามมีคะแนนตัวเลข เพราะแต่ละสำนักให้ไม่ตรงกัน');
+    const all = r.verdictTh + r.verdictDetailTh + r.methodNoteTh;
+    assert.ok(!/ต้องเปลี่ยนชื่อ|ควรเปลี่ยนชื่อทันที/.test(all), 'ห้ามสั่งให้เปลี่ยนชื่อ');
+    assert.ok(!/[A-Za-z]/.test(all), 'ต้องเป็นภาษาไทยล้วน');
+  });
+
+  console.log('\n--- SECTION 40: ดวงปีนี้เฉพาะบุคคล ---');
+
+  it('ดวงปีนี้ต้องต่างกันรายคน ไม่ใช่แค่แยกตามปีนักษัตร', () => {
+    const now = new Date(2026, 5, 1);
+    const people = ['1998-06-27', '1986-06-27', '1974-06-27', '1990-02-14', '2001-12-03'];
+    const results = people.map(bd => YearlyPersonalEngine.analyze({ birthDate: bd }, now));
+    results.forEach(r => assert.strictEqual(r.available, true));
+
+    // ปีนักษัตรของปีต้องเหมือนกันทุกคน เพราะเป็นปีเดียวกัน
+    assert.strictEqual(new Set(results.map(r => r.yearPillarTh)).size, 1);
+
+    // แต่ธีมของปีต้องต่างกัน เพราะเทียบกับธาตุประจำตัวของแต่ละคน
+    const themes = new Set(results.map(r => r.layers[0].valueTh));
+    assert.ok(themes.size >= 3, 'ห้าคนต้องได้ธีมปีต่างกันอย่างน้อยสามแบบ ได้ ' + themes.size);
+  });
+
+  it('ดวงปีนี้ต้องมีสี่ชั้น ทุกชั้นบอกที่มาได้ และเป็นภาษาไทยล้วน', () => {
+    const r = YearlyPersonalEngine.analyze({ birthDate: '1998-06-27' }, new Date(2026, 5, 1));
+    assert.strictEqual(r.layers.length, 4);
+    r.layers.forEach(l => {
+      assert.ok(l.sourceTh && l.sourceTh.length > 10, 'ทุกชั้นต้องบอกที่มา');
+      const all = l.titleTh + l.valueTh + l.detailTh + l.sourceTh;
+      assert.ok(!/[A-Za-z]/.test(all), 'ห้ามมีอักษรอังกฤษ: ' + l.titleTh);
+      assert.ok(!/[\u4E00-\u9FFF]/.test(all), 'ห้ามมีอักษรจีน: ' + l.titleTh);
+    });
+  });
+
+  it('เรื่องความรักต้องแยกกรณีคนโสดกับคนมีคู่เสมอ ห้ามล็อก', () => {
+    // ผู้ใช้สั่งชัดว่าห้ามทำนายแบบล็อกว่าคนนี้โสดคนนี้มีคู่
+    ['1998-06-27', '1986-06-27', '1974-06-27', '2001-12-03', '1990-02-14'].forEach(bd => {
+      const r = YearlyPersonalEngine.analyze({ birthDate: bd }, new Date(2026, 5, 1));
+      assert.ok(/โสด/.test(r.loveTh), bd + ' ต้องพูดถึงกรณีคนโสด');
+      assert.ok(/มีคู่|มีแฟน/.test(r.loveTh), bd + ' ต้องพูดถึงกรณีคนมีคู่ด้วย');
+    });
+  });
+
+  it('ปีชงต้องตัดปีตามลี่ชุน และไม่รู้วันเกิดต้องไม่เดา', () => {
+    // ต้นเดือนมกราคมยังเป็นปีนักษัตรเดิม
+    const beforeLiChun = YearlyPersonalEngine.analyze(
+      { birthDate: '1998-06-27' }, new Date(2026, 0, 15));
+    assert.strictEqual(beforeLiChun.zodiacYear, 2025, 'ก่อนลี่ชุนยังเป็นปีเดิม');
+
+    const afterLiChun = YearlyPersonalEngine.analyze(
+      { birthDate: '1998-06-27' }, new Date(2026, 1, 20));
+    assert.strictEqual(afterLiChun.zodiacYear, 2026, 'หลังลี่ชุนขึ้นปีใหม่');
+
+    assert.strictEqual(YearlyPersonalEngine.analyze({}).available, false);
   });
 
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {

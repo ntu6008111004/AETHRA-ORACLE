@@ -198,7 +198,7 @@ export class ConsultationView {
       renderMessages('กำลังรวบรวมดวงชะตาและเรียบเรียงคำทำนายให้คุณ…');
 
       const stored = Storage.getConsultationMessages(currentTopic);
-      const history = stored.map(message => ({
+      const history = stored.filter(m => !m.isError).map(message => ({
         role: message.role === 'oracle' ? 'assistant' : 'user',
         content: message.text
       }));

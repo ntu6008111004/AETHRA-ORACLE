@@ -69,8 +69,14 @@ export class AstrologyEngine {
     const radLat = lat * (Math.PI / 180);
     const eps = 23.4392911 * (Math.PI / 180); // Obliquity of ecliptic
 
-    const y = -Math.cos(radLST);
-    const x = Math.sin(radLST) * Math.cos(eps) + Math.tan(radLat) * Math.sin(eps);
+    // สูตรมาตรฐานของจุดลัคนา
+    //   ลัคนา = atan2( cos(เวลาดาราคติ) , -(sin(เวลาดาราคติ)*cos(มุมเอียง) + tan(ละติจูด)*sin(มุมเอียง)) )
+    //
+    // ของเดิมสลับเครื่องหมาย ทำให้ได้จุดที่อยู่ตรงข้ามกันพอดี คือได้จุดตกแทนจุดขึ้น
+    // พิสูจน์ด้วยฟิสิกส์ได้ตรง ๆ ว่าตอนพระอาทิตย์ขึ้น ลัคนาต้องเท่ากับตำแหน่งดวงอาทิตย์
+    // แต่ของเดิมให้ค่าที่ห่างออกไป 180 องศา ซึ่งคือขอบฟ้าฝั่งตรงข้าม
+    const y = Math.cos(radLST);
+    const x = -(Math.sin(radLST) * Math.cos(eps) + Math.tan(radLat) * Math.sin(eps));
     let asc = Math.atan2(y, x) * (180 / Math.PI);
     asc = (asc + 360) % 360;
     return asc;
@@ -96,7 +102,15 @@ export class AstrologyEngine {
   }
 
   // Complete Multi-Tradition Chart Calculation
-  static calculateChart(birthDateStr, birthTimeStr = "12:00", lat = 13.7563, lon = 100.5018) {
+  /**
+   * คำนวณผังดวงดาว
+   *
+   * @param {number} [tzOffsetHours] เขตเวลาของสถานที่เกิด ค่าเริ่มต้นคือเวลาไทย
+   *   จำเป็นมาก เพราะเวลาเกิดที่ผู้ใช้กรอกเป็นเวลาท้องถิ่น
+   *   แต่สูตรดาราศาสตร์ต้องใช้เวลามาตรฐานกรีนิช
+   *   ถ้าไม่แปลงก่อน ลัคนาจะเพี้ยนไปราวสามราศีครึ่งสำหรับคนไทย
+   */
+  static calculateChart(birthDateStr, birthTimeStr = "12:00", lat = 13.7563, lon = 100.5018, tzOffsetHours = 7) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(String(birthDateStr || ''))) {
       throw new TypeError('A valid birth date is required for astrology calculations.');
     }
@@ -106,7 +120,9 @@ export class AstrologyEngine {
     const hasCoordinates = Number.isFinite(lat) && Number.isFinite(lon);
     const [hour, minute] = (hasExactTime ? birthTimeStr : '12:00').split(':').map(Number);
 
-    const jd = this.getJulianDay(year, month, day, hour, minute);
+    // แปลงเวลาเกิดท้องถิ่นเป็นเวลามาตรฐานกรีนิชก่อนเข้าสูตรดาราศาสตร์
+    const tz = Number.isFinite(tzOffsetHours) ? tzOffsetHours : 7;
+    const jd = this.getJulianDay(year, month, day, hour, minute) - tz / 24;
     
     // 1. Western Tropical Calculations
     const sunLong = this.calculateSunLongitude(jd);

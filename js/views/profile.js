@@ -10,6 +10,18 @@ import { ToastManager } from '../components/toast.js';
 import { SoundManager } from '../core/sound.js';
 import { OnboardingModal } from '../components/onboarding.js';
 
+/**
+ * กันข้อความจากผู้ใช้ไปทำลายโครงหน้าเว็บ
+ *
+ * ชื่อที่มีเครื่องหมายคำพูดหรือวงเล็บมุม เคยทำให้หน้าโปรไฟล์แสดงผลเพี้ยน
+ * เพราะค่าถูกยัดเข้าไปในโครงหน้าเว็บตรง ๆ โดยไม่แปลงอักขระพิเศษก่อน
+ */
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
+
 export class ProfileView {
   static render(container) {
     const profile = Storage.getProfile();
@@ -38,14 +50,14 @@ export class ProfileView {
           </div>
           <div style="font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-top: 4px;">${profile.fullName}</div>
           <div style="font-size: var(--font-size-xs); color: var(--color-text-muted); margin-top: 4px;">
-            ${Number.isFinite(profile.lat) && Number.isFinite(profile.lon) ? `Coordinates: ${profile.lat.toFixed(2)}°, ${profile.lon.toFixed(2)}° · ` : ''}${profile.birthDate ? `Born: ${profile.birthDate}` : I18n.t('onboarding_date_unknown')} ${profile.birthTime || ''}
+            ${Number.isFinite(profile.lat) && Number.isFinite(profile.lon) ? `พิกัดเกิด ${profile.lat.toFixed(2)}° ${profile.lon.toFixed(2)}° · ` : ''}${profile.birthDate ? `เกิด ${profile.birthDate.slice(8,10)}/${profile.birthDate.slice(5,7)}/${Number(profile.birthDate.slice(0,4)) + 543}` : I18n.t('onboarding_date_unknown')} ${profile.birthTime || ''}
           </div>
         </div>
 
         <!-- Edit Profile Form -->
         <div class="editorial-card">
           <div class="editorial-card-header">
-            <span class="tradition-tag">Birth Coordinates Calibration</span>
+            <span class="tradition-tag">ตั้งค่าข้อมูลวันเกิด</span>
             <button id="prof-reopen-onboard-btn" class="header-btn" style="height: 30px; font-size: 11px;">
               Re-open Calibration Wizard
             </button>
@@ -83,7 +95,7 @@ export class ProfileView {
               </div>
               <div>
                 <label class="form-label" for="prof-time">${I18n.t('profile_birthtime_label')}</label>
-                <input type="text" id="prof-time" value="${profile.birthTime || ''}" class="form-control" placeholder="เช่น 09:30 หรือ สองทุ่ม" ${profile.isTimeUnknown ? 'disabled' : 'required'} />
+                <input type="text" id="prof-time" value="${escapeHtml(profile.birthTime || '')}" class="form-control" placeholder="เช่น 09:30 หรือ สองทุ่ม" ${profile.isTimeUnknown ? 'disabled' : 'required'} />
               </div>
             </div>
 
@@ -102,7 +114,7 @@ export class ProfileView {
             <!-- Place of Birth -->
             <div style="margin-bottom: var(--space-4);">
               <label class="form-label" for="prof-city">${I18n.t('onboarding_city_label')}</label>
-              <input type="text" id="prof-city" value="${profile.birthPlace || ''}" class="form-control"
+              <input type="text" id="prof-city" value="${escapeHtml(profile.birthPlace || '')}" class="form-control"
                 list="prof-birthplace-suggestions" placeholder="เช่น เมืองเชียงใหม่, ประเทศไทย" autocomplete="off" required />
               <datalist id="prof-birthplace-suggestions">
                 ${MAJOR_CITIES.map(c => `<option value="${c.name}"></option>`).join('')}

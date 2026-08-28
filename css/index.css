@@ -2094,3 +2094,89 @@ html:lang(th) h3 {
 .daily-do-label { color: #68D391; }
 .daily-avoid-label { color: #ECC94B; }
 .daily-do p, .daily-avoid p { font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.7; }
+
+/* ==========================================================================
+   ชุดหน้าตาใหม่ ใช้กับหน้าชื่อและดวงปีนี้
+   เน้นอ่านง่าย เว้นระยะชัด ไม่ยัดข้อมูลจนแน่น
+   ========================================================================== */
+.hero-panel {
+  background: linear-gradient(160deg, rgba(212,175,55,0.09), var(--color-surface-elevated) 65%);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: 18px; padding: var(--space-6); margin-bottom: var(--space-6); text-align: left;
+}
+.hero-panel-eyebrow {
+  font-size: 11px; letter-spacing: 0.1em; color: var(--color-gold-bright);
+  text-transform: uppercase; margin-bottom: 8px;
+}
+.hero-panel-title {
+  font-family: var(--font-serif); font-size: clamp(1.5rem, 3.6vw, 2.2rem);
+  line-height: 1.3; color: var(--color-text-primary); margin-bottom: 10px;
+}
+.hero-panel-sub {
+  font-size: var(--font-size-sm); color: var(--color-text-secondary);
+  line-height: 1.8; max-width: 62ch; margin-bottom: var(--space-5);
+}
+.stack-form { display: grid; gap: var(--space-3); }
+.field-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: var(--space-4); }
+.field { display: block; }
+.btn-block { width: 100%; justify-content: center; }
+
+.panel {
+  background: var(--color-surface-elevated); border: 1px solid var(--color-border-subtle);
+  border-radius: 16px; padding: var(--space-6); margin-bottom: var(--space-5); text-align: left;
+}
+.panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: var(--space-4); margin-bottom: var(--space-5);
+  padding-bottom: var(--space-4); border-bottom: 1px solid var(--color-border-subtle);
+}
+.panel-eyebrow { font-size: 11px; letter-spacing: 0.08em; color: var(--color-gold-bright); margin-bottom: 6px; }
+.panel-title { font-family: var(--font-serif); font-size: var(--font-size-2xl); color: var(--color-text-primary); line-height: 1.35; }
+.panel-sub { font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.75; margin-top: 6px; }
+
+.level-pill {
+  flex-shrink: 0; border-radius: 999px; padding: 7px 16px;
+  font-size: 12px; font-weight: 700; border: 1px solid; white-space: nowrap;
+}
+.lv-great { background: rgba(72,187,120,0.14); border-color: rgba(72,187,120,0.5); color: #68D391; }
+.lv-good { background: rgba(72,187,120,0.09); border-color: rgba(72,187,120,0.35); color: #9AE6B4; }
+.lv-neutral { background: rgba(197,160,89,0.1); border-color: rgba(197,160,89,0.4); color: var(--color-gold-light); }
+.lv-watch { background: rgba(236,201,75,0.1); border-color: rgba(236,201,75,0.4); color: #ECC94B; }
+.lv-careful { background: rgba(229,62,62,0.1); border-color: rgba(229,62,62,0.42); color: #FC8181; }
+
+.layer-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3); }
+.layer-card {
+  background: rgba(12,13,16,0.5); border: 1px solid var(--color-border-subtle);
+  border-radius: 12px; padding: var(--space-4);
+}
+.layer-num { font-size: 10px; letter-spacing: 0.1em; color: var(--color-text-muted); margin-bottom: 5px; }
+.layer-card h3 { font-size: var(--font-size-sm); color: var(--color-text-primary); margin-bottom: 6px; }
+.layer-value { font-size: var(--font-size-base); font-weight: 700; color: var(--color-gold-light); margin-bottom: 7px; line-height: 1.5; }
+.layer-card p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.8; margin-bottom: 8px; }
+
+.domain-strip { display: grid; gap: var(--space-3); margin: var(--space-5) 0; }
+.domain-strip-item {
+  display: flex; gap: var(--space-4); align-items: flex-start;
+  background: rgba(12,13,16,0.4); border-radius: 12px; padding: var(--space-4);
+  border-left: 3px solid var(--color-gold-bright);
+}
+.ds-icon { font-size: 22px; line-height: 1; }
+.domain-strip-item b { display: block; font-size: var(--font-size-sm); color: var(--color-gold-light); margin-bottom: 4px; }
+.domain-strip-item p { font-size: 13px; color: var(--color-text-secondary); line-height: 1.8; }
+
+.letter-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-4); }
+.letter-chip {
+  display: inline-flex; flex-direction: column; align-items: center;
+  min-width: 42px; border-radius: 9px; padding: 6px 8px;
+  background: rgba(72,187,120,0.08); border: 1px solid rgba(72,187,120,0.28);
+}
+.letter-chip b { font-size: 17px; color: var(--color-text-primary); line-height: 1.2; }
+.letter-chip small { font-size: 9px; color: var(--color-text-muted); margin-top: 2px; }
+.letter-chip.is-bad { background: rgba(229,62,62,0.1); border-color: rgba(229,62,62,0.42); }
+.letter-chip.is-bad b { color: #FC8181; }
+
+@media (max-width: 560px) {
+  .panel, .hero-panel { padding: var(--space-4); }
+  .panel-head { flex-direction: column; gap: var(--space-3); }
+  .level-pill { align-self: flex-start; }
+}

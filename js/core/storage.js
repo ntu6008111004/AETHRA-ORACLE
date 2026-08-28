@@ -93,7 +93,17 @@ class StorageManager {
       const data = safeStorage.getItem(STORAGE_KEYS.PROFILE);
       if (!data) return { ...this.defaultProfile };
 
-      const stored = JSON.parse(data);
+      // ข้อมูลที่เก็บไว้อาจพังได้ เช่น ผู้ใช้แก้เอง หรือบันทึกไม่จบตอนปิดเบราว์เซอร์
+      // ถ้าไม่ดักไว้ ทั้งเว็บจะล่มและเปิดไม่ขึ้นเลย แก้ไม่ได้ด้วยการรีเฟรช
+      let stored;
+      try {
+        stored = JSON.parse(data);
+      } catch (err) {
+        return { ...this.defaultProfile };
+      }
+      if (!stored || typeof stored !== 'object' || Array.isArray(stored)) {
+        return { ...this.defaultProfile };
+      }
       const merged = { ...this.defaultProfile, ...stored };
       merged.fullName = stored.fullName || stored.name || this.defaultProfile.fullName;
       merged.nickname = stored.nickname || stored.name || this.defaultProfile.nickname;

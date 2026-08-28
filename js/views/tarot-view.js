@@ -170,7 +170,7 @@ export class TarotView {
                   ${positionIntro[i]}
                 </div>
                 <p style="font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.85; margin-bottom: var(--space-2);">
-                  <strong style="color: var(--color-gold-light);">ความหมาย:</strong> ${c.meaningTh || c.keywordsTh}
+                  <strong style="color: var(--color-gold-light);">${c.isReversed ? 'ความหมายเมื่อไพ่หัวตั้ง (ใบนี้ออกกลับหัว ให้อ่านกล่องสีแดงข้างล่างประกอบ)' : 'ความหมาย'}:</strong> ${c.meaningTh || c.keywordsTh}
                 </p>
                 ${c.adviceTh ? `<p style="font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.8; margin-bottom: var(--space-3);">
                   <strong style="color: #68D391;">คำแนะนำ:</strong> ${c.adviceTh}
@@ -242,7 +242,11 @@ export class TarotView {
 
         const context = [
           'ผลการเปิดไพ่ทาโรต์ 3 ใบ (อดีต-ปัจจุบัน-อนาคต) ที่สุ่มได้จริง:',
-          ...cards.map((c, i) => `${positions[i].labelTh}: ${c.nameTh}${c.isReversed ? ' (กลับหัว)' : ''} — ${c.meaningTh || c.keywordsTh}`),
+          ...cards.map((c, i) => `${positions[i].labelTh}: ${c.nameTh}${c.isReversed ? ' (กลับหัว)' : ''} — `
+          + (c.isReversed
+            ? 'ความหมายเมื่อกลับหัว: ' + (c.reversedTh || 'ตำราไม่ได้ระบุความหมายกลับหัวของใบนี้ ห้ามเดา')
+              + ' (ความหมายเมื่อหัวตั้งคือ ' + (c.meaningTh || c.keywordsTh) + ' แต่ใบนี้ออกกลับหัว ห้ามใช้ความหมายหัวตั้ง)'
+            : (c.meaningTh || c.keywordsTh))),
           'เรื่องที่ผู้ถามตั้งจิตไว้: ' + question
         ].join(String.fromCharCode(10));
 
