@@ -120,18 +120,43 @@ export function parseOracleThinking(rawContent) {
 const CJK_RE = /[぀-ヿ㐀-䶿一-鿿가-힯]/g;
 const MAX_REPAIRABLE_CJK = 8;
 
-export function repairForeignChars(answerText) {
-  const text = String(answerText || '');
-  const hits = text.match(CJK_RE);
-  if (!hits) return text;
-  if (hits.length > MAX_REPAIRABLE_CJK) return text;
+/**
+ * คำอังกฤษที่ยอมให้ผ่านได้ เพราะเป็นชื่อเฉพาะที่คนไทยใช้ทับศัพท์กันจริง
+ * และไม่มีคำไทยที่ใช้แทนได้แบบไม่กำกวม
+ */
+const ALLOWED_LATIN = /^(LINE|Facebook|Google|YouTube|TikTok|Instagram|AETHRA|ORACLE|SMS|OK)$/i;
 
+/** จำนวนอักษรโรมันที่ถือว่าหลุดมานิดเดียว พอซ่อมได้ */
+const MAX_REPAIRABLE_LATIN = 60;
+
+export function repairForeignChars(answerText) {
+  let text = String(answerText || '');
+
+  // ---- อักษรจีน ญี่ปุ่น เกาหลี ----
+  const cjkHits = text.match(CJK_RE);
+  if (cjkHits && cjkHits.length <= MAX_REPAIRABLE_CJK) {
+    text = text.replace(CJK_RE, '');
+  }
+
+  // ---- คำอังกฤษที่หลุดมาปนกลางประโยคไทย ----
+  // โมเดลชอบเผลอใส่คำอังกฤษแทรก เช่น เขียนว่า "อย่าลุย aggressively"
+  // หรือ "ง่ายต่อการ misunderstood (เข้าใจผิด)"
+  // เว็บนี้เป็นภาษาไทยล้วน จึงตัดออก แต่ทำเฉพาะตอนหลุดมานิดเดียว
+  // ถ้าหลุดเยอะแปลว่าตอบผิดภาษาทั้งก้อน ต้องถามใหม่ ซ่อมไม่ได้
+  const latinCount = (text.match(/[A-Za-z]/g) || []).length;
+  if (latinCount > 0 && latinCount <= MAX_REPAIRABLE_LATIN) {
+    // รูปแบบ คำอังกฤษ วงเล็บคำไทย ให้เหลือแค่คำไทย เพราะโมเดลแปลไว้ให้แล้ว
+    text = text.replace(/\b[A-Za-z][A-Za-z'-]{2,}\s*\(([^)]*[฀-๿][^)]*)\)/g, '$1');
+    // คำอังกฤษเดี่ยว ๆ ที่เหลือ ตัดทิ้ง ยกเว้นชื่อเฉพาะที่ยอมให้ผ่าน
+    text = text.replace(/\b[A-Za-z][A-Za-z'-]{2,}\b/g, m => (ALLOWED_LATIN.test(m) ? m : ''));
+  }
+
+  // เก็บกวาดร่องรอยหลังตัด เช่น วงเล็บว่าง หรือช่องว่างซ้อน
   return text
-    .replace(CJK_RE, '')
-    // เก็บกวาดร่องรอยหลังตัด เช่น วงเล็บว่าง หรือช่องว่างซ้อน
     .replace(/\(\s*\)/g, '')
     .replace(/[ 	]{2,}/g, ' ')
     .replace(/\s+([,.!?])/g, '$1')
+    .replace(/[ 	]+$/gm, '')
     .trim();
 }
 
@@ -145,6 +170,12 @@ export function looksEnglish(answerText) {
   const latin = (text.match(/[A-Za-z]/g) || []).length;
   if (thai + latin === 0) return true;
   if (thai === 0) return true;
+
+  // อักษรโรมันไม่กี่ตัวถือว่ายอมรับได้ เช่น ชื่อแอปหรือชื่อยี่ห้อที่คนไทยเรียกทับศัพท์
+  // ต้องมีเพดานขั้นต่ำแบบนี้ ไม่งั้นประโยคสั้น ๆ ที่มีชื่อแอปเดียวจะถูกบล็อกทั้งที่ปกติดี
+  // เช่น ลองทักไปทางไลน์หรือเฟซบุ๊กดู ซึ่งมีอักษรโรมันสิบสองตัวจากทั้งประโยคสามสิบตัว
+  if (latin <= 30) return false;
+
   // อักษรโรมันเกินหนึ่งในสี่ของตัวอักษรทั้งหมด ถือว่าหลุดโหมดภาษาแล้ว
   return latin > (thai + latin) * 0.25;
 }

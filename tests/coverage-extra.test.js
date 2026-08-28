@@ -761,6 +761,28 @@ export function runCoverageExtraTests(it) {
     assert.strictEqual(YearlyPersonalEngine.analyze({}).available, false);
   });
 
+
+  it('ตัดคำอังกฤษที่หลุดปนกลางประโยคไทยออกได้ แต่เก็บชื่อแอปไว้', () => {
+    // โมเดลชอบเผลอแทรกคำอังกฤษกลางประโยคไทย เช่น อย่าลุย aggressively
+    const a = repairForeignChars('ไม่ควรเร่งรีบหรือลุย aggressively อย่างปีอื่น');
+    assert.ok(!/[A-Za-z]/.test(a), 'คำอังกฤษเดี่ยวต้องถูกตัด');
+    assert.ok(a.includes('ไม่ควรเร่งรีบ'), 'เนื้อความไทยต้องอยู่ครบ');
+
+    // รูปแบบคำอังกฤษวงเล็บคำไทย ให้เหลือแค่คำไทย เพราะโมเดลแปลไว้แล้ว
+    const b = repairForeignChars('ปีนี้ง่ายต่อการ misunderstood (เข้าใจผิด) กัน');
+    assert.ok(!/[A-Za-z]/.test(b));
+    assert.ok(b.includes('เข้าใจผิด'), 'ต้องเก็บคำแปลไทยไว้');
+
+    // ชื่อแอปที่คนไทยเรียกทับศัพท์จริง ต้องไม่ถูกตัด
+    const c = repairForeignChars('ลองทักไปทาง LINE หรือ Facebook ดู');
+    assert.ok(c.includes('LINE') && c.includes('Facebook'), 'ชื่อแอปต้องคงไว้');
+    assert.strictEqual(looksEnglish(c), false, 'ประโยคสั้นที่มีชื่อแอปต้องไม่ถูกบล็อก');
+
+    // ไทยล้วนต้องไม่ถูกแก้อะไรเลย
+    const pure = 'ดวงคุณปีนี้ดีมาก ควรลุยงานเต็มที่';
+    assert.strictEqual(repairForeignChars(pure), pure);
+  });
+
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {
     assert.strictEqual(I18n.getLang(), 'th');
     I18n.setLang('en');
