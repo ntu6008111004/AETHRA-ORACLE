@@ -5,6 +5,7 @@
  */
 
 import { Storage } from '../core/storage.js';
+import { parseThaiBirthDate, parseThaiBirthTime } from '../core/thai-date-input.js';
 import { SoundManager } from '../core/sound.js';
 import { LifeDomainsEngine } from '../engines/life-domains.js';
 import { TaksaEngine } from '../engines/thai-taksa.js';
@@ -60,11 +61,13 @@ export class OtherView {
 
               <div class="match-person">
                 <h3>ข้อมูลเกิดและเบอร์</h3>
-                <label class="form-label" for="oth-date">วันเดือนปีเกิด (ค.ศ.)</label>
-                <input type="date" id="oth-date" class="form-control" required />
+                <label class="form-label" for="oth-date">วันเดือนปีเกิด</label>
+                <input type="text" id="oth-date" class="form-control" placeholder="เช่น 27/06/2541" required />
+                <p class="form-hint">พิมพ์ได้เลย ใส่ พ.ศ. หรือ ค.ศ. ก็ได้</p>
+                <div id="oth-date-warn" class="date-echo" hidden></div>
 
                 <label class="form-label" for="oth-time">เวลาเกิด (ถ้าทราบ)</label>
-                <input type="time" id="oth-time" class="form-control" />
+                <input type="text" id="oth-time" class="form-control" placeholder="เช่น 09:30 หรือ สองทุ่ม" />
                 <p class="form-hint">ถ้าไม่ทราบให้เว้นว่าง ระบบจะไม่เดาลัคนาให้</p>
 
                 <label class="form-label" for="oth-phone">เบอร์โทรศัพท์ (ถ้ามี)</label>
@@ -110,8 +113,23 @@ export class OtherView {
       const name = container.querySelector('#oth-name').value.trim();
       const nickname = container.querySelector('#oth-nick').value.trim() || name.split(' ')[0];
       const gender = container.querySelector('#oth-gender').value;
-      const birthDate = container.querySelector('#oth-date').value;
-      const birthTime = container.querySelector('#oth-time').value || null;
+      // ผู้ใช้พิมพ์วันเกิดเอง ต้องแปลงเป็นรูปแบบมาตรฐานก่อนคำนวณ
+      const parsedDate = parseThaiBirthDate(container.querySelector('#oth-date').value);
+      const warn = container.querySelector('#oth-date-warn');
+      if (!parsedDate.ok) {
+        if (warn) {
+          warn.hidden = false;
+          warn.className = 'date-echo is-bad';
+          warn.textContent = '⚠️ ' + parsedDate.errorTh;
+        }
+        return;
+      }
+      if (warn) warn.hidden = true;
+      const birthDate = parsedDate.isoDate;
+
+      const rawTime = container.querySelector('#oth-time').value.trim();
+      const parsedTime = rawTime ? parseThaiBirthTime(rawTime) : null;
+      const birthTime = parsedTime && parsedTime.ok ? parsedTime.time : null;
       const phone = container.querySelector('#oth-phone').value.trim();
       const place = resolveBirthPlace(container.querySelector('#oth-city').value);
 

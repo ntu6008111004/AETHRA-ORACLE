@@ -502,6 +502,40 @@ export function runCoverageExtraTests(it) {
     assert.notStrictEqual(a.stage.id, c.stage.id, 'คนละวัยต้องได้ช่วงวัยต่างกัน');
   });
 
+
+  it('ข้อความที่ผู้ใช้เห็นทั้งเว็บ ต้องไม่มีอักษรจีนญี่ปุ่นเกาหลีปน', () => {
+    // เคยหลุดจริงหลายจุด เช่น กำลังธาตุประจำตัวเคยแสดงอักษรจีนต่อท้าย
+    // และที่มาของข้อมูลเคยเขียนว่า สิบเทพ วงเล็บอักษรจีน
+    // ผู้ใช้ไทยอ่านไม่ออกและดูเหมือนเว็บพัง จึงต้องล็อกไว้ด้วยเทส
+    const analysis = LifeDomainsEngine.analyze({
+      birthDate: '1998-06-27', birthTime: '09:30', gender: 'male', lat: 13.75, lon: 100.5
+    });
+    const CJK = /[぀-ヿ一-鿿가-힯]/;
+
+    // ไล่ทุกฟิลด์ที่ลงท้ายด้วย Th เพราะเป็นข้อความที่เตรียมไว้ให้ผู้ใช้อ่าน
+    const walk = (node, path) => {
+      if (node === null || node === undefined) return;
+      if (typeof node === 'string') {
+        if (path.endsWith('Th') || path.includes('Th.')) {
+          assert.ok(!CJK.test(node), 'พบอักษรต่างชาติที่ ' + path + ': ' + node.slice(0, 60));
+        }
+        return;
+      }
+      if (Array.isArray(node)) {
+        node.forEach((v, i) => walk(v, path + '[' + i + ']'));
+        return;
+      }
+      if (typeof node === 'object') {
+        Object.entries(node).forEach(([k, v]) => {
+          // ฟิลด์ที่ตั้งใจเก็บอักษรจีนไว้อ้างอิง ไม่ได้เอาไปแสดง
+          if (k === 'hanzi' || k === 'labelHanzi') return;
+          walk(v, path ? path + '.' + k : k);
+        });
+      }
+    };
+    walk(analysis, '');
+  });
+
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {
     assert.strictEqual(I18n.getLang(), 'th');
     I18n.setLang('en');

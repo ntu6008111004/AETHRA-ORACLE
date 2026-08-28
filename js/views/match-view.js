@@ -12,6 +12,7 @@
  */
 
 import { Storage } from '../core/storage.js';
+import { parseThaiBirthDate, parseThaiBirthTime } from '../core/thai-date-input.js';
 import { SoundManager } from '../core/sound.js';
 import { CompatibilityEngine } from '../engines/compatibility.js';
 import { ChineseZodiacEngine } from '../engines/chinese-zodiac.js';
@@ -106,14 +107,18 @@ export class MatchView {
                 <label class="form-label" for="match-a-name">ชื่อเล่น</label>
                 <input type="text" id="match-a-name" class="form-control" value="${escapeHtml(profile.nickname || '')}" placeholder="เช่น ฟลุ๊ค" />
                 <label class="form-label" for="match-a-date">วันเกิด</label>
-                <input type="date" id="match-a-date" class="form-control" value="${escapeHtml(profile.birthDate || '')}" required />
+                <input type="text" id="match-a-date" class="form-control" placeholder="เช่น 27/06/2541"
+                  value="${profile.birthDate ? profile.birthDate.slice(8,10) + '/' + profile.birthDate.slice(5,7) + '/' + (Number(profile.birthDate.slice(0,4)) + 543) : ''}" required />
+                <p class="form-hint">พิมพ์ได้เลย ใส่ พ.ศ. หรือ ค.ศ. ก็ได้</p>
+                <div id="match-date-warn" class="date-echo" hidden></div>
               </div>
               <div class="match-person">
                 <h3>คนที่ 2 (คนที่อยากเช็คด้วย)</h3>
                 <label class="form-label" for="match-b-name">ชื่อเล่น</label>
                 <input type="text" id="match-b-name" class="form-control" placeholder="เช่น แฟน / คนที่แอบชอบ" />
                 <label class="form-label" for="match-b-date">วันเกิด</label>
-                <input type="date" id="match-b-date" class="form-control" required />
+                <input type="text" id="match-b-date" class="form-control" placeholder="เช่น 12/03/2538" required />
+                <p class="form-hint">พิมพ์ได้เลย ใส่ พ.ศ. หรือ ค.ศ. ก็ได้</p>
               </div>
             </div>
             <button type="submit" class="btn btn-primary match-submit"><span>💞 เช็คดวงสมพงศ์</span></button>
@@ -347,15 +352,28 @@ export class MatchView {
 
     form.addEventListener('submit', async event => {
       event.preventDefault();
+      // ผู้ใช้พิมพ์วันเกิดเอง ต้องแปลงก่อน และถ้าอ่านไม่ออกต้องบอกให้ชัด
+      const dateA = parseThaiBirthDate(container.querySelector('#match-a-date').value);
+      const dateB = parseThaiBirthDate(container.querySelector('#match-b-date').value);
+      const warn = container.querySelector('#match-date-warn');
+      if (!dateA.ok || !dateB.ok) {
+        if (warn) {
+          warn.hidden = false;
+          warn.className = 'date-echo is-bad';
+          warn.textContent = '⚠️ ' + (!dateA.ok ? 'คนที่ 1: ' + dateA.errorTh : 'คนที่ 2: ' + dateB.errorTh);
+        }
+        return;
+      }
+      if (warn) warn.hidden = true;
+
       const personA = {
         nickname: container.querySelector('#match-a-name').value.trim() || 'คนที่ 1',
-        birthDate: container.querySelector('#match-a-date').value
+        birthDate: dateA.isoDate
       };
       const personB = {
         nickname: container.querySelector('#match-b-name').value.trim() || 'คนที่ 2',
-        birthDate: container.querySelector('#match-b-date').value
+        birthDate: dateB.isoDate
       };
-      if (!personA.birthDate || !personB.birthDate) return;
 
       SoundManager.play('reading-complete');
       const result = CompatibilityEngine.compare(personA, personB);

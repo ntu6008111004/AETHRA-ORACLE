@@ -9,7 +9,7 @@
  *              วันเปลี่ยนเวลา 23:00 น. ตามธรรมเนียมยามจื้อ
  *   - เสายาม  ก้านฟ้าใช้กฎ "อู่สู่ตุ้น" (五鼠遁)
  *   - นับธาตุจาก "สารซ่อนในกิ่งดิน" (藏干) ไม่ใช่นับแค่ธาตุผิว
- *   - วิเคราะห์ความแข็งอ่อนของธาตุประจำตัว แล้วหาธาตุที่ควรเสริม (用神)
+ *   - วิเคราะห์ความแข็งอ่อนของธาตุประจำตัว แล้วหาธาตุที่ควรเสริม (ธาตุที่ควรเสริม)
  */
 
 import {
@@ -118,7 +118,7 @@ export const ELEMENT_GENERATED_BY = { Fire: 'Wood', Earth: 'Fire', Metal: 'Earth
 export const ELEMENT_CONTROLLED_BY = { Earth: 'Wood', Water: 'Earth', Fire: 'Water', Metal: 'Fire', Wood: 'Metal' };
 
 /**
- * สิบเทพ (十神) — ความสัมพันธ์ระหว่างธาตุประจำตัวกับก้านฟ้าอื่น
+ * สิบเทพ — ความสัมพันธ์ระหว่างธาตุประจำตัวกับก้านฟ้าอื่น
  * อธิบายเป็นภาษาไทยว่า "แปลว่าอะไรในชีวิตจริง"
  */
 export const TEN_GODS = {
@@ -246,7 +246,7 @@ export class BaZiEngine {
     const supportRatio = totalScore > 0 ? supportScore / totalScore : 0;
     const isStrong = supportRatio >= 0.5;
 
-    // ธาตุที่ควรเสริม (用神) — ถ้าแข็งไปให้ระบาย ถ้าอ่อนไปให้เติม
+    // ธาตุที่ควรเสริม (ธาตุที่ควรเสริม) — ถ้าแข็งไปให้ระบาย ถ้าอ่อนไปให้เติม
     const favourableElements = isStrong
       ? [ELEMENT_GENERATES[dayMaster.element], ELEMENT_CONTROLS[dayMaster.element], ELEMENT_CONTROLLED_BY[dayMaster.element]]
       : [dayMaster.element, ELEMENT_GENERATED_BY[dayMaster.element]];
@@ -268,7 +268,7 @@ export class BaZiEngine {
         pillarTh: pillar.labelTh,
         stemTh: pillar.stem.nameTh,
         godKey: key,
-        god: key ? TEN_GODS[key] : { nameTh: 'ตัวคุณเอง (日主)', domainTh: 'ธาตุประจำตัว', meaningTh: 'เสานี้คือตัวคุณเอง เป็นจุดอ้างอิงของทั้งดวง', lifeTh: 'ทุกอย่างในดวงจีนอ่านโดยเทียบกับธาตุนี้' }
+        god: key ? TEN_GODS[key] : { nameTh: 'ตัวคุณเอง (ธาตุประจำตัว)', domainTh: 'ธาตุประจำตัว', meaningTh: 'เสานี้คือตัวคุณเอง เป็นจุดอ้างอิงของทั้งดวง', lifeTh: 'ทุกอย่างในดวงจีนอ่านโดยเทียบกับธาตุนี้' }
       };
     });
 
@@ -353,7 +353,7 @@ export class BaZiEngine {
   }
 
   /**
-   * ต้าอวิ้น (大運) — รอบโชคชะตา 10 ปี
+   * ต้าอวิ้น — รอบโชคชะตา 10 ปี
    * ทิศทางการนับ: ชายปีหยาง/หญิงปีหยิน นับไปข้างหน้า, นอกนั้นนับถอยหลัง
    * อายุเริ่มต้นคำนวณจากระยะถึงสารทจริง ไม่ใช่ค่าประมาณ
    */
@@ -405,7 +405,7 @@ export class BaZiEngine {
     return Object.assign(list, {
       startAge,
       direction: forward ? 'forward' : 'reverse',
-      directionTh: forward ? 'นับไปข้างหน้า (順行)' : 'นับถอยหลัง (逆行)',
+      directionTh: forward ? 'นับไปข้างหน้า' : 'นับถอยหลัง',
       startNoteTh: `เริ่มเข้าต้าอวิ้นเมื่ออายุประมาณ ${startAge.years} ปี ${startAge.months} เดือน (คำนวณจากระยะ ${startAge.daysToTerm} วันถึงสารท หารด้วย 3)`
     });
   }

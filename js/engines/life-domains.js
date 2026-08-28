@@ -233,7 +233,7 @@ export class LifeDomainsEngine {
         {
           headingTh: 'คุณเหมาะเป็นลูกจ้างหรือเจ้าของกิจการ',
           bodyTh: styleTh,
-          sourceTh: 'มาจาก: สิบเทพ (十神) ที่ปรากฏในดวงจีนของคุณ'
+          sourceTh: 'มาจาก: สิบเทพ ที่ปรากฏในดวงจีนของคุณ'
         },
         {
           headingTh: 'สไตล์การทำงานตามภพการงาน',
@@ -251,7 +251,7 @@ export class LifeDomainsEngine {
           headingTh: 'จังหวะการงานช่วงนี้',
           bodyTh: 'ตอนนี้คุณอยู่ในรอบโชคชะตา 10 ปีชื่อ ' + currentLuck.nameTh + ' (อายุ ' + currentLuck.ageFrom + '-' + currentLuck.ageTo + ' ปี) '
             + currentLuck.verdictTh + ' ดาวเด่นของรอบนี้คือ ' + currentLuck.god.nameTh + ' ซึ่งเกี่ยวกับ ' + currentLuck.god.domainTh,
-          sourceTh: 'มาจาก: ต้าอวิ้น (大運) รอบโชคชะตา 10 ปีในดวงจีน'
+          sourceTh: 'มาจาก: ต้าอวิ้น รอบโชคชะตา 10 ปีในดวงจีน'
         },
         ...extraSections
       ],
@@ -337,7 +337,7 @@ export class LifeDomainsEngine {
           bodyTh: 'ดวงคุณเป็น ' + bazi.strength.labelTh + ' ' + bazi.strength.plainTh
             + ' ธาตุที่ควรเสริมคือธาตุ' + bazi.favourableElementsTh.join(' และธาตุ')
             + ' ใช้ได้ผ่านสีเสื้อผ้า สีกระเป๋าตังค์ และการจัดโต๊ะทำงาน',
-          sourceTh: 'มาจาก: การวิเคราะห์ความแข็งอ่อนของธาตุประจำตัว แล้วหาธาตุที่ควรเสริม (用神)'
+          sourceTh: 'มาจาก: การวิเคราะห์ความแข็งอ่อนของธาตุประจำตัว แล้วหาธาตุที่ควรเสริม (ธาตุที่ควรเสริม)'
         },
         {
           headingTh: 'ทิศที่ควรหันโต๊ะทำงานหรือหัวเตียง',
@@ -594,7 +594,7 @@ export class LifeDomainsEngine {
           bodyTh: 'คุณอยู่ในรอบ ' + currentLuck.nameTh + ' ช่วงอายุ ' + currentLuck.ageFrom + '-' + currentLuck.ageTo
             + ' ปี (ประมาณปี ค.ศ. ' + currentLuck.yearFrom + '-' + currentLuck.yearTo + ') ' + currentLuck.verdictTh
             + ' ดาวประจำรอบคือ ' + currentLuck.god.nameTh + ' เกี่ยวกับ ' + currentLuck.god.domainTh + ' — ' + currentLuck.god.lifeTh,
-          sourceTh: 'มาจาก: ต้าอวิ้น (大運) คำนวณจากเสาเดือนและระยะถึงสารทจริง'
+          sourceTh: 'มาจาก: ต้าอวิ้น คำนวณจากเสาเดือนและระยะถึงสารทจริง'
         },
         {
           headingTh: 'เลขมงคลของคุณ',

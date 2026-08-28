@@ -117,7 +117,7 @@ export class ElementsView {
               <button type="button" class="element-card-head">
                 <span class="element-emoji">${el.emoji}</span>
                 <span class="element-title">
-                  <b>${esc(el.nameTh)} <span class="element-hanzi">${el.hanzi}</span></b>
+                  <b>${esc(el.nameTh)}</b>
                   <small>${esc(el.coreTh)}</small>
                 </span>
                 ${isMine ? '<span class="element-mine-tag">ธาตุคุณ</span>' : ''}

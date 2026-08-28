@@ -2049,3 +2049,15 @@ html:lang(th) h3 {
 .resonance-sub {
   font-size: var(--font-size-sm); color: var(--color-text-secondary); line-height: 1.75;
 }
+
+/* --- แถบยืนยันว่าระบบอ่านวันเกิดที่พิมพ์ออกมาเป็นวันไหน --- */
+.date-echo {
+  font-size: 12px; line-height: 1.6; border-radius: 8px;
+  padding: 7px 10px; margin-top: 6px; border: 1px solid;
+}
+.date-echo.is-ok {
+  background: rgba(72, 187, 120, 0.1); border-color: rgba(72, 187, 120, 0.4); color: #68D391;
+}
+.date-echo.is-bad {
+  background: rgba(236, 201, 75, 0.09); border-color: rgba(236, 201, 75, 0.4); color: #ECC94B;
+}

@@ -3,6 +3,7 @@
  */
 
 import { Storage, MAJOR_CITIES, resolveBirthPlace } from '../core/storage.js';
+import { parseThaiBirthDate, parseThaiBirthTime } from '../core/thai-date-input.js';
 import { I18n } from '../core/i18n.js';
 import { CelestialSeal } from '../components/seal.js';
 import { ToastManager } from '../components/toast.js';
@@ -76,11 +77,13 @@ export class ProfileView {
             <div class="profile-field-grid">
               <div>
                 <label class="form-label" for="prof-date">${I18n.t('profile_birthdate_label')}</label>
-                <input type="date" id="prof-date" value="${profile.birthDate || ''}" class="form-control" ${profile.isBirthDateUnknown ? 'disabled' : 'required'} />
+                <input type="text" id="prof-date" value="${profile.birthDate ? profile.birthDate.slice(8,10) + '/' + profile.birthDate.slice(5,7) + '/' + (Number(profile.birthDate.slice(0,4)) + 543) : ''}" class="form-control" placeholder="เช่น 27/06/2541" autocomplete="bday" ${profile.isBirthDateUnknown ? 'disabled' : 'required'} />
+                <div id="prof-date-echo" class="date-echo" hidden></div>
+                <p class="form-hint">พิมพ์เองได้เลย ใส่ พ.ศ. หรือ ค.ศ. ก็ได้</p>
               </div>
               <div>
                 <label class="form-label" for="prof-time">${I18n.t('profile_birthtime_label')}</label>
-                <input type="time" id="prof-time" value="${profile.birthTime || ''}" class="form-control" ${profile.isTimeUnknown ? 'disabled' : 'required'} />
+                <input type="text" id="prof-time" value="${profile.birthTime || ''}" class="form-control" placeholder="เช่น 09:30 หรือ สองทุ่ม" ${profile.isTimeUnknown ? 'disabled' : 'required'} />
               </div>
             </div>
 
@@ -167,6 +170,23 @@ export class ProfileView {
       if (e.target.checked) placeInput.value = '';
     });
 
+    // อ่านวันเกิดที่พิมพ์แบบสด ๆ ให้ผู้ใช้ยืนยันด้วยตาว่าระบบเข้าใจถูก
+    const dateEcho = container.querySelector('#prof-date-echo');
+    const refreshEcho = () => {
+      if (!dateEcho || !dateInput) return;
+      const raw = dateInput.value.trim();
+      if (!raw) { dateEcho.hidden = true; return; }
+      const r = parseThaiBirthDate(raw);
+      dateEcho.hidden = false;
+      dateEcho.className = r.ok ? 'date-echo is-ok' : 'date-echo is-bad';
+      dateEcho.textContent = r.ok
+        ? '✅ ระบบอ่านได้ว่า ' + r.displayTh + (r.assumed ? ' — ถ้าไม่ใช่ ลองพิมพ์ปีให้ครบสี่หลัก' : '')
+        : '⚠️ ' + r.errorTh;
+    };
+    dateInput?.addEventListener('input', refreshEcho);
+    dateInput?.addEventListener('blur', refreshEcho);
+    refreshEcho();
+
     container.querySelector('#prof-reopen-onboard-btn')?.addEventListener('click', (e) => {
       e.preventDefault();
       OnboardingModal.open();
@@ -182,14 +202,39 @@ export class ProfileView {
       const isBirthDateUnknown = !!unknownDateCheckbox?.checked;
       const isUnknown = !!unknownTimeCheckbox?.checked;
 
+      // ผู้ใช้พิมพ์วันเกิดเอง ต้องแปลงเป็นรูปแบบมาตรฐานก่อนเก็บ
+      // ถ้าอ่านไม่ออกต้องไม่บันทึก ไม่งั้นดวงจะผิดทั้งหมดโดยผู้ใช้ไม่รู้ตัว
+      let parsedBirthDate = null;
+      if (!isBirthDateUnknown) {
+        const parsed = parseThaiBirthDate(dateInput.value);
+        if (!parsed.ok) {
+          ToastManager.show(parsed.errorTh);
+          dateInput.focus();
+          return;
+        }
+        parsedBirthDate = parsed.isoDate;
+      }
+
+      // เวลาเกิดพิมพ์เป็นคำไทยได้ เช่น สองทุ่ม จึงต้องแปลงเหมือนกัน
+      let parsedBirthTime = null;
+      if (!isUnknown && timeInput.value.trim()) {
+        const pt = parseThaiBirthTime(timeInput.value);
+        if (!pt.ok) {
+          ToastManager.show(pt.errorTh);
+          timeInput.focus();
+          return;
+        }
+        parsedBirthTime = pt.time;
+      }
+
       const updated = Storage.saveProfile({
         name: container.querySelector('#prof-full-name').value.trim(),
         fullName: container.querySelector('#prof-full-name').value.trim(),
         nickname: container.querySelector('#prof-nickname').value.trim(),
         gender: container.querySelector('#prof-gender').value,
-        birthDate: isBirthDateUnknown ? null : dateInput.value,
+        birthDate: isBirthDateUnknown ? null : parsedBirthDate,
         isBirthDateUnknown,
-        birthTime: isUnknown ? null : timeInput.value,
+        birthTime: isUnknown ? null : parsedBirthTime,
         isTimeUnknown: isUnknown,
         ...place,
         isBirthPlaceUnknown,
