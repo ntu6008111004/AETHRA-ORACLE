@@ -2061,3 +2061,36 @@ html:lang(th) h3 {
 .date-echo.is-bad {
   background: rgba(236, 201, 75, 0.09); border-color: rgba(236, 201, 75, 0.4); color: #ECC94B;
 }
+
+/* --- ดวงรายวันเฉพาะตัว --- */
+.daily-mine { border-left: 4px solid var(--color-gold-bright); }
+.daily-mine.daily-great { border-left-color: #48BB78; }
+.daily-mine.daily-good { border-left-color: #68D391; }
+.daily-mine.daily-watch { border-left-color: #ECC94B; }
+.daily-mine.daily-careful { border-left-color: #FC8181; }
+.daily-mine-tag { background: rgba(212,175,55,0.15); color: var(--color-gold-bright); }
+.daily-mine-date { font-size: var(--font-size-xs); color: var(--color-text-secondary); }
+.daily-mine-level {
+  font-family: var(--font-serif); font-size: var(--font-size-2xl);
+  color: var(--color-gold-bright); margin: var(--space-2) 0 4px;
+}
+.daily-mine-pillar { font-size: var(--font-size-sm); color: var(--color-text-secondary); margin-bottom: var(--space-4); }
+.daily-factor-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-3); margin-bottom: var(--space-4);
+}
+.daily-factor {
+  background: rgba(12,13,16,0.5); border: 1px solid var(--color-border-subtle);
+  border-radius: 10px; padding: var(--space-3) var(--space-4);
+}
+.daily-factor-title { font-size: 11px; color: var(--color-text-muted); margin-bottom: 3px; }
+.daily-factor-value { font-size: var(--font-size-sm); font-weight: 700; color: var(--color-gold-light); margin-bottom: 5px; }
+.daily-factor-detail { font-size: 12px; color: var(--color-text-secondary); line-height: 1.7; margin-bottom: 6px; }
+.daily-do-avoid { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: var(--space-3); }
+.daily-do, .daily-avoid { border-radius: 10px; padding: var(--space-3) var(--space-4); border: 1px solid; }
+.daily-do { background: rgba(72,187,120,0.08); border-color: rgba(72,187,120,0.35); }
+.daily-avoid { background: rgba(236,201,75,0.07); border-color: rgba(236,201,75,0.35); }
+.daily-do-label, .daily-avoid-label { display: block; font-size: 11px; font-weight: 700; margin-bottom: 4px; }
+.daily-do-label { color: #68D391; }
+.daily-avoid-label { color: #ECC94B; }
+.daily-do p, .daily-avoid p { font-size: var(--font-size-sm); color: var(--color-text-primary); line-height: 1.7; }

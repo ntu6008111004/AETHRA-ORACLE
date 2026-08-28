@@ -121,7 +121,10 @@ export class LifeDomainsEngine {
     const numerology = NumerologyEngine.analyze(name || nickname || '', birthDate);
     const gods = collectGods(bazi);
     const houses = thai.houses.available ? thai.houses.byNumber : null;
-    const luck = BaZiEngine.calculateLuckPillars(bazi, gender || 'unspecified', 8);
+    // คำนวณ 12 รอบ ครอบคลุมถึงอายุราว 128 ปี
+    // ของเดิมคำนวณแค่ 8 รอบ คนอายุเกิน 88 จึงหลุดออกนอกทุกรอบ
+    // แล้วระบบไปหยิบรอบแรกมาแสดง กลายเป็นคนอายุ 91 เห็นว่าตัวเองอยู่รอบอายุ 8 ถึง 17
+    const luck = BaZiEngine.calculateLuckPillars(bazi, gender || 'unspecified', 12);
 
     const dmElement = FIVE_ELEMENTS[bazi.dayMaster.element];
     const favDirections = [...new Set(bazi.favourableElements.map(e => ELEMENT_DIRECTIONS[e]))];
@@ -132,9 +135,53 @@ export class LifeDomainsEngine {
     )].sort((a, b) => a - b);
     const badNumber = PLANET_NUMBERS[taksa.byId.kalakini.planetId];
 
-    const currentYear = new Date().getFullYear();
-    const age = currentYear - Number(birthDate.slice(0, 4));
-    const currentLuck = luck.find(l => age >= l.ageFrom && age <= l.ageTo) || luck[0];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+
+    // อายุต้องนับว่าวันเกิดปีนี้ผ่านมาหรือยัง ไม่ใช่เอาปีลบปีเฉย ๆ
+    // ถ้าเอาปีลบปี คนที่วันเกิดยังไม่ถึง (ราวหนึ่งในสามของผู้ใช้เสมอ)
+    // จะถูกนับอายุเกินไปหนึ่งปี ซึ่งอาจทำให้ดึงรอบโชคชะตาผิดรอบไปเลย
+    const birthY = Number(birthDate.slice(0, 4));
+    const birthM = Number(birthDate.slice(5, 7));
+    const birthD = Number(birthDate.slice(8, 10));
+    const hadBirthdayThisYear =
+      (now.getMonth() + 1 > birthM)
+      || (now.getMonth() + 1 === birthM && now.getDate() >= birthD);
+    const age = currentYear - birthY - (hadBirthdayThisYear ? 0 : 1);
+
+    // เด็กที่ยังไม่ถึงอายุเริ่มรอบแรก ตำราถือว่ายังอยู่ใต้อิทธิพลของเสาเดือน
+    // ยังไม่เข้ารอบโชคชะตาใด ๆ จึงต้องบอกตามนั้น ไม่ใช่ยัดให้อยู่รอบแรก
+    const firstLuck = luck[0];
+    const lastLuck = luck[luck.length - 1];
+
+    let currentLuck;
+    if (age < firstLuck.ageFrom) {
+      const monthPillar = bazi.pillars.month;
+      const isFav = bazi.favourableElements.includes(monthPillar.stem.element);
+      // ดาวประจำเสาเดือน คำนวณไว้แล้วในผังดวง ไม่ต้องคำนวณซ้ำ
+      const monthGod = (bazi.tenGods || []).find(g => g.pillarTh === 'เสาเดือน');
+      currentLuck = {
+        order: 0,
+        beforeFirstLuck: true,
+        ageFrom: 0,
+        ageTo: firstLuck.ageFrom - 1,
+        yearFrom: Number(birthDate.slice(0, 4)),
+        yearTo: Number(birthDate.slice(0, 4)) + firstLuck.ageFrom - 1,
+        stem: monthPillar.stem,
+        branch: monthPillar.branch,
+        nameTh: monthPillar.stem.nameTh + monthPillar.branch.nameTh,
+        elementTh: monthPillar.stem.elementTh,
+        branchElementTh: monthPillar.branch.elementTh,
+        god: monthGod ? monthGod.god : null,
+        isFavourable: isFav,
+        verdictTh: 'ยังไม่เข้ารอบโชคชะตารอบแรก ตำราถือว่าช่วงนี้ยังอยู่ใต้อิทธิพลของเสาเดือนเกิด'
+          + ' จะเข้ารอบแรกตอนอายุ ' + firstLuck.ageFrom + ' ปี'
+      };
+    } else {
+      // ถ้าอายุเกินรอบสุดท้ายที่คำนวณไว้ ต้องใช้รอบสุดท้าย ไม่ใช่ย้อนไปรอบแรก
+      // ของเดิมทำให้คนอายุ 91 ปีเห็นว่าตัวเองอยู่ในรอบของอายุ 8 ถึง 17 ปี
+      currentLuck = luck.find(l => age >= l.ageFrom && age <= l.ageTo) || lastLuck;
+    }
     // ปีชงต้องใช้ปีนักษัตรตามเกณฑ์ลี่ชุน ไม่ใช่ปีปฏิทินเครื่องตรง ๆ
     // (ช่วง 1 ม.ค. - 3 ก.พ. ยังเป็นปีนักษัตรเดิม)
     const chong = ChineseZodiacEngine.checkChong(birthDate, birthTime || '12:00');

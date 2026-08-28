@@ -17,6 +17,7 @@ import { DREAM_BOOK } from '../js/data/dream-book.js';
 import { parseOracleThinking, looksEnglish, repairForeignChars } from '../js/services/oracle-ai.js';
 import { buildFactSheet, buildResonancePrompt, BANNED_VAGUE_TH } from '../js/services/resonance.js';
 import { lifeStageOf } from '../js/data/modern-context.js';
+import { DailyPersonalEngine } from '../js/engines/daily-personal.js';
 import { buildVersionMap, stampHtml } from '../scripts/stamp-version.js';
 import { AstrologyEngine } from '../js/engines/astrology.js';
 import { IChingEngine } from '../js/engines/iching.js';
@@ -534,6 +535,82 @@ export function runCoverageExtraTests(it) {
       }
     };
     walk(analysis, '');
+  });
+
+
+  console.log('\n--- SECTION 37: ดวงรายวันต้องไม่ซ้ำ และอายุต้องนับถูก ---');
+
+  it('อายุต้องนับว่าวันเกิดปีนี้ผ่านมาหรือยัง ไม่ใช่เอาปีลบปี', () => {
+    const now = new Date();
+    const y = now.getFullYear();
+    const pad = n => String(n).padStart(2, '0');
+
+    // วันเกิดพรุ่งนี้ ยังไม่ครบรอบปี อายุต้องน้อยกว่าปีลบปีอยู่หนึ่ง
+    const tomorrow = new Date(now.getTime() + 86400000);
+    const notYet = (y - 30) + '-' + pad(tomorrow.getMonth() + 1) + '-' + pad(tomorrow.getDate());
+    const r1 = LifeDomainsEngine.analyze({ birthDate: notYet });
+    assert.strictEqual(r1.meta.age, 29, 'วันเกิดยังไม่ถึง อายุต้องเป็น 29 ไม่ใช่ 30');
+
+    // วันเกิดวันนี้ ครบรอบพอดี
+    const today = (y - 30) + '-' + pad(now.getMonth() + 1) + '-' + pad(now.getDate());
+    assert.strictEqual(LifeDomainsEngine.analyze({ birthDate: today }).meta.age, 30);
+  });
+
+  it('รอบโชคชะตาสิบปีต้องครอบคลุมอายุจริงทุกช่วง', () => {
+    // เคยพลาด คนอายุ 91 ปีเห็นว่าตัวเองอยู่ในรอบของอายุ 8 ถึง 17 ปี
+    // เพราะคำนวณรอบไว้แค่ 8 รอบ พออายุเกินก็ตกไปใช้รอบแรก
+    ['2024-05-05', '2015-03-10', '1998-06-27', '1980-03-10',
+     '1960-03-10', '1945-03-10', '1935-03-10', '1910-03-10'].forEach(bd => {
+      const r = LifeDomainsEngine.analyze({ birthDate: bd });
+      const luck = r.meta.currentLuck;
+      assert.ok(r.meta.age >= luck.ageFrom && r.meta.age <= luck.ageTo,
+        bd + ' อายุ ' + r.meta.age + ' แต่ระบบให้รอบ ' + luck.ageFrom + '-' + luck.ageTo);
+    });
+  });
+
+  it('ดวงรายวันต้องต่างกันทุกวัน ไม่ซ้ำเดิมทุกสัปดาห์', () => {
+    // ของเดิมดูแค่วันในสัปดาห์ ผลจึงซ้ำเดิมทุกวันศุกร์ตลอดไป
+    const me = { birthDate: '1998-06-27', birthTime: '09:30' };
+    const seen = new Set();
+    for (let i = 0; i < 14; i += 1) {
+      const d = new Date(2026, 7, 1 + i);
+      const r = DailyPersonalEngine.forDate(me, d);
+      assert.strictEqual(r.available, true);
+      seen.add(r.dayPillarTh + '|' + r.factors[0].valueTh + '|' + r.levelTh);
+    }
+    assert.ok(seen.size >= 12, 'สิบสี่วันต้องได้ผลต่างกันอย่างน้อยสิบสองแบบ ได้ ' + seen.size);
+  });
+
+  it('ดวงรายวันของคนละคนในวันเดียวกันต้องต่างกัน', () => {
+    // ของเดิมทุกคนได้คำทำนายเหมือนกันเป๊ะ ทั้งที่หัวข้อเขียนว่าดวงของคุณ
+    const day = new Date(2026, 7, 28);
+    const results = ['1998-06-27', '1975-01-15', '2005-11-03', '1960-09-20', '1990-02-14']
+      .map(bd => DailyPersonalEngine.forDate({ birthDate: bd }, day));
+    const sigs = new Set(results.map(r => r.levelTh + '|' + r.factors[0].valueTh + '|' + r.factors[1].valueTh));
+    assert.ok(sigs.size >= 3, 'ห้าคนต้องได้ผลต่างกันอย่างน้อยสามแบบ ได้ ' + sigs.size);
+
+    // เสาวันต้องเหมือนกันทุกคน เพราะเป็นวันเดียวกัน
+    const pillars = new Set(results.map(r => r.dayPillarTh));
+    assert.strictEqual(pillars.size, 1, 'วันเดียวกันเสาวันต้องเหมือนกัน');
+  });
+
+  it('ไม่รู้วันเกิดต้องบอกตรง ๆ ไม่แสดงคำทำนายกลางที่ใช้กับใครก็ได้', () => {
+    const r = DailyPersonalEngine.forDate({}, new Date(2026, 7, 28));
+    assert.strictEqual(r.available, false);
+    assert.ok(r.reasonTh.includes('ไม่ทราบวันเกิด'));
+    assert.ok(r.dateLabelTh.includes('สิงหาคม'), 'ยังต้องบอกวันที่ได้');
+  });
+
+  it('ทุกปัจจัยของดวงรายวันต้องบอกที่มาได้ และเป็นภาษาไทยล้วน', () => {
+    const r = DailyPersonalEngine.forDate({ birthDate: '1998-06-27' }, new Date(2026, 7, 28));
+    assert.strictEqual(r.factors.length, 4, 'ต้องมีสี่ปัจจัยครบ');
+    r.factors.forEach(f => {
+      assert.ok(f.sourceTh && f.sourceTh.length > 10, 'ทุกปัจจัยต้องบอกที่มา');
+      const all = f.titleTh + f.valueTh + f.detailTh + f.sourceTh;
+      assert.ok(!/[A-Za-z]/.test(all), 'ต้องไม่มีอักษรอังกฤษ: ' + f.titleTh);
+      assert.ok(!/[一-鿿]/.test(all), 'ต้องไม่มีอักษรจีน: ' + f.titleTh);
+    });
+    assert.ok(r.methodNoteTh.includes('วันเกิดของคุณ'), 'ต้องบอกวิธีคำนวณให้ผู้ใช้รู้');
   });
 
   it('I18n: เว็บถูกล็อกเป็นภาษาไทยล้วน สลับภาษาไม่ได้แล้ว', () => {

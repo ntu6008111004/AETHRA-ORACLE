@@ -7,19 +7,35 @@ import { Storage } from '../core/storage.js';
 import { I18n } from '../core/i18n.js';
 import { AstrologyEngine } from '../engines/astrology.js';
 import { DailyGuidanceEngine } from '../engines/daily-guidance.js';
+import { DailyPersonalEngine } from '../engines/daily-personal.js';
 import { elementWithMeaningTh } from '../core/element-names.js';
+
+/** กันข้อความจากผู้ใช้หรือข้อมูลไปทำลายโครงหน้าเว็บ */
+function escapeHtml(v) {
+  return String(v ?? '').replace(/[&<>"']/g, c => (
+    { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+  ));
+}
 
 export class DashboardView {
   static render(container) {
     const profile = Storage.getProfile();
     const now = new Date();
-    const dateStr = now.toISOString().split('T')[0];
+    // ต้องใช้วันตามเวลาเครื่องผู้ใช้ ไม่ใช่เวลามาตรฐานสากล
+    // ถ้าใช้เวลาสากล คนไทยที่เปิดเว็บช่วงเที่ยงคืนถึงเจ็ดโมงเช้า
+    // จะเห็นหัวข้อบอกว่าวันนี้ แต่ตำแหน่งดาวเป็นของเมื่อวาน ขัดกันเองบนจอเดียว
+    const dateStr = now.getFullYear()
+      + '-' + String(now.getMonth() + 1).padStart(2, '0')
+      + '-' + String(now.getDate()).padStart(2, '0');
 
     // 1. Dynamic celestial chart & Daily Auspicious Matrix
     const todayChart = AstrologyEngine.calculateChart(dateStr);
     const sunSign = todayChart.western.sun;
     const moonSign = todayChart.western.moon;
     const daily = DailyGuidanceEngine.getTodayGuidance(now);
+    // ดวงรายวันเฉพาะตัว คำนวณจากวันเกิดผู้ใช้เทียบกับดวงของวันนี้
+    // ต่างจาก daily ข้างบนที่เป็นข้อมูลกลางตามวันในสัปดาห์ ซึ่งทุกคนได้เหมือนกัน
+    const mine = DailyPersonalEngine.forDate(profile, now);
 
     const greeting = I18n.getLang() === 'th'
       ? `สวัสดีคุณ ${profile.nickname || profile.name || 'ผู้แสวงหาปัญญา'}`
@@ -30,7 +46,7 @@ export class DashboardView {
         <!-- Greeting Header -->
         <div style="margin-bottom: var(--space-6);">
           <div class="hero-badge" style="margin-bottom: var(--space-2);">
-            <span>✦</span> <span>ดวงชะตาประจำวันของคุณ</span> <span>✦</span>
+            <span>✦</span> <span>ดวงประจำวัน</span> <span>✦</span>
           </div>
           <h1 style="font-size: clamp(1.75rem, 4vw, 2.5rem); margin-bottom: var(--space-1);">${greeting}</h1>
           <p style="color: var(--color-text-secondary); font-size: var(--font-size-base);">
@@ -38,11 +54,56 @@ export class DashboardView {
           </p>
         </div>
 
+        <!-- 0. ดวงรายวันเฉพาะตัว คำนวณจากวันเกิดของผู้ใช้จริง -->
+        ${mine.available ? `
+        <div class="editorial-card daily-mine daily-${mine.level}" style="margin-bottom: var(--space-6);">
+          <div class="editorial-card-header">
+            <span class="tradition-tag daily-mine-tag">🔮 ดวงวันนี้ของคุณโดยเฉพาะ</span>
+            <span class="daily-mine-date">${escapeHtml(mine.dateLabelTh)}</span>
+          </div>
+
+          <h2 class="daily-mine-level">${escapeHtml(mine.levelTh)}</h2>
+          <p class="daily-mine-pillar">
+            วันนี้เป็นวัน${escapeHtml(mine.dayPillarTh)} ธาตุ${escapeHtml(mine.dayElementTh)}
+            ปีนักษัตรประจำวันคือ${escapeHtml(mine.dayAnimalTh)}
+          </p>
+
+          <div class="daily-factor-grid">
+            ${mine.factors.map(f => `
+              <div class="daily-factor">
+                <div class="daily-factor-title">${escapeHtml(f.titleTh)}</div>
+                <div class="daily-factor-value">${escapeHtml(f.valueTh)}</div>
+                <p class="daily-factor-detail">${escapeHtml(f.detailTh)}</p>
+                <div class="source-badge">มาจาก: ${escapeHtml(f.sourceTh)}</div>
+              </div>`).join('')}
+          </div>
+
+          <div class="daily-do-avoid">
+            <div class="daily-do">
+              <span class="daily-do-label">✅ วันนี้ควรทำ</span>
+              <p>${escapeHtml(mine.doTh)}</p>
+            </div>
+            <div class="daily-avoid">
+              <span class="daily-avoid-label">⚠️ วันนี้ควรเลี่ยง</span>
+              <p>${escapeHtml(mine.avoidTh)}</p>
+            </div>
+          </div>
+
+          <div class="source-badge" style="margin-top: var(--space-3);">
+            ${escapeHtml(mine.methodNoteTh)}
+          </div>
+        </div>` : `
+        <div class="notice-card is-info" style="text-align:left; margin-bottom: var(--space-6);">
+          <span class="notice-icon">🔮</span>
+          <div><p>${escapeHtml(mine.reasonTh)}
+          <a href="#profile" class="notice-link">กรอกวันเกิดที่นี่</a></p></div>
+        </div>`}
+
         <!-- 1. HERO CARD: สีมงคลและดวงประจำวัน (เด่นชัด เข้าใจง่ายทันที) -->
         <div class="editorial-card theme-unified" style="margin-bottom: var(--space-8); background: radial-gradient(circle at top right, rgba(212, 175, 55, 0.08) 0%, var(--color-surface-elevated) 100%);">
           <div class="editorial-card-header">
             <span class="tradition-tag" style="background: rgba(212, 175, 55, 0.15); color: var(--color-gold-bright);">
-              🎨 สีมงคลและแนวทางชีวิตวันนี้
+              🎨 สีมงคลประจำวันในสัปดาห์ (ข้อมูลกลาง ทุกคนเหมือนกัน)
             </span>
             <span style="font-size: var(--font-size-xs); color: var(--color-gold-bright); font-weight: 600;">
               ${daily.dayNameTh} (${daily.planetTh})

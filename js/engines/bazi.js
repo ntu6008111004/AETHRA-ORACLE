@@ -135,7 +135,7 @@ export const TEN_GODS = {
 };
 
 /** จับคู่ธาตุ+ขั้ว เพื่อหาว่าเป็นสิบเทพตัวไหนเทียบกับธาตุประจำตัว */
-function resolveTenGod(dayStem, otherStem) {
+export function resolveTenGod(dayStem, otherStem) {
   const dm = HEAVENLY_STEMS[dayStem];
   const other = HEAVENLY_STEMS[otherStem];
   const samePolarity = dm.polarity === other.polarity;
